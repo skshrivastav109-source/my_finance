@@ -6,6 +6,27 @@
 <title>Ledger — Personal Finance Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
+  import { getDatabase } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-database.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCTW4qE4Dj1FxeIs_L2-e0rwVsJEm5Rcb4",
+    authDomain: "my-finance-app-70b7d.firebaseapp.com",
+    projectId: "my-finance-app-70b7d",
+    storageBucket: "my-finance-app-70b7d.firebasestorage.app",
+    messagingSenderId: "952825710287",
+    appId: "1:952825710287:web:92b6fdee23a5488c1899ba",
+    measurementId: "G-DK5Z3153D1"
+  };
+
+  window.fbApp = initializeApp(firebaseConfig);
+  window.fbDb = getDatabase(window.fbApp);
+  window.fbAuth = getAuth(window.fbApp);
+  console.log('[Firebase] Initialized successfully');
+</script>
 <style>
 :root{
   --paper:#F6F5F0;
@@ -497,25 +518,42 @@ td.amt.debit{color:var(--brick);}
    STORAGE HELPERS
 ============================================================ */
 async function sGet(key, shared){
-  try{ 
-    const storageKey = shared ? 'shared_' + key : 'session_' + key;
-    const data = localStorage.getItem(storageKey); 
-    return data ? JSON.parse(data) : null; 
+  try {
+    if(!window.fbDb) {
+      console.warn('Firebase not initialized, using localStorage fallback');
+      const storageKey = shared ? 'shared_' + key : 'session_' + key;
+      const data = localStorage.getItem(storageKey);
+      return data ? JSON.parse(data) : null;
+    }
+
+    const { ref, get } = await import("https://www.gstatic.com/firebasejs/12.17.0/firebase-database.js");
+    const path = shared ? `shared/${key}` : `session/${key}`;
+    const snapshot = await get(ref(window.fbDb, path));
+    return snapshot.exists() ? snapshot.val() : null;
   }
-  catch(e){ 
-    console.error('storage get failed', e); 
-    return null; 
+  catch(e) {
+    console.error('storage get failed', e);
+    return null;
   }
 }
+
 async function sSet(key, value, shared){
-  try{ 
-    const storageKey = shared ? 'shared_' + key : 'session_' + key;
-    localStorage.setItem(storageKey, JSON.stringify(value)); 
-    return true; 
+  try {
+    if(!window.fbDb) {
+      console.warn('Firebase not initialized, using localStorage fallback');
+      const storageKey = shared ? 'shared_' + key : 'session_' + key;
+      localStorage.setItem(storageKey, JSON.stringify(value));
+      return true;
+    }
+
+    const { ref, set } = await import("https://www.gstatic.com/firebasejs/12.17.0/firebase-database.js");
+    const path = shared ? `shared/${key}` : `session/${key}`;
+    await set(ref(window.fbDb, path), value);
+    return true;
   }
-  catch(e){ 
-    console.error('storage set failed', e); 
-    return false; 
+  catch(e) {
+    console.error('storage set failed', e);
+    return false;
   }
 }
  
