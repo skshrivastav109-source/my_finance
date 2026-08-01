@@ -380,6 +380,30 @@ td.amt.debit{color:var(--brick);}
   .topbar{padding:14px 16px;}
 }
 </style>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCTW4qE4Dj1FxeIs_L2-e0rwVsJEm5Rcb4",
+    authDomain: "my-finance-app-70b7d.firebaseapp.com",
+    projectId: "my-finance-app-70b7d",
+    storageBucket: "my-finance-app-70b7d.firebasestorage.app",
+    messagingSenderId: "952825710287",
+    appId: "1:952825710287:web:92b6fdee23a5488c1899ba",
+    measurementId: "G-DK5Z3153D1",
+    databaseURL: "https://my-finance-app-70b7d-default-rtdb.firebaseio.com"
+  };
+
+  const app = firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+  const auth = firebase.auth();
+  
+  console.log('[Firebase] Initialized successfully');
+</script>
+
 </head>
 <body>
  
@@ -497,25 +521,54 @@ td.amt.debit{color:var(--brick);}
    STORAGE HELPERS
 ============================================================ */
 async function sGet(key, shared){
-  try{ 
+  try {
     const storageKey = shared ? 'shared_' + key : 'session_' + key;
-    const data = localStorage.getItem(storageKey); 
-    return data ? JSON.parse(data) : null; 
+    
+    // Try Firebase first
+    if(window.firebase && window.firebase.database) {
+      try {
+        const snapshot = await firebase.database().ref(storageKey).once('value');
+        if(snapshot.exists()) {
+          console.log('[FB] Retrieved from Firebase:', storageKey);
+          return snapshot.val();
+        }
+      } catch(fbError) {
+        console.warn('[FB] Firebase read failed, using localStorage:', fbError.message);
+      }
+    }
+    
+    // Fallback to localStorage
+    const data = localStorage.getItem(storageKey);
+    return data ? JSON.parse(data) : null;
   }
-  catch(e){ 
-    console.error('storage get failed', e); 
-    return null; 
+  catch(e) {
+    console.error('storage get failed', e);
+    return null;
   }
 }
+
 async function sSet(key, value, shared){
-  try{ 
+  try {
     const storageKey = shared ? 'shared_' + key : 'session_' + key;
-    localStorage.setItem(storageKey, JSON.stringify(value)); 
-    return true; 
+    
+    // Save to localStorage
+    localStorage.setItem(storageKey, JSON.stringify(value));
+    
+    // Try to sync to Firebase
+    if(window.firebase && window.firebase.database) {
+      try {
+        await firebase.database().ref(storageKey).set(value);
+        console.log('[FB] Synced to Firebase:', storageKey);
+      } catch(fbError) {
+        console.warn('[FB] Firebase write failed, data saved locally:', fbError.message);
+      }
+    }
+    
+    return true;
   }
-  catch(e){ 
-    console.error('storage set failed', e); 
-    return false; 
+  catch(e) {
+    console.error('storage set failed', e);
+    return false;
   }
 }
  
