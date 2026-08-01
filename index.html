@@ -1278,13 +1278,20 @@ function renderDashboard(){
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:18px;">
         <div>
           <div style="font-weight:600;font-size:15px;margin-bottom:3px;">Select Month to View Report</div>
-          <div style="font-size:12.5px;color:var(--ink-soft);">See your income, expenses, and savings for any month.</div>
+          <div style="font-size:12.5px;color:var(--ink-soft);">See your income, expenses, and savings for any period.</div>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <select id="monthSelector" onchange="updateMonthlyReport()" style="padding:10px 14px;border:1px solid var(--line-strong);border-radius:8px;font-size:14px;background:var(--surface);color:var(--ink);cursor:pointer;min-width:200px;">
             <option value="">All Time</option>
+            <option value="custom">📅 Custom Date Range</option>
             ${availableMonths.length ? availableMonths.map(m=>`<option value="${m}" ${m===currentMonth?'selected':''}>${formatMonthLabel(m)}</option>`).join('') : ''}
           </select>
+          <div id="customDateRange" style="display:none;gap:10px;align-items:center;">
+            <input type="date" id="dateRangeStart" style="padding:10px 14px;border:1px solid var(--line-strong);border-radius:8px;font-size:14px;background:var(--surface);color:var(--ink);cursor:pointer;">
+            <span style="color:var(--ink-soft);font-weight:600;">to</span>
+            <input type="date" id="dateRangeEnd" style="padding:10px 14px;border:1px solid var(--line-strong);border-radius:8px;font-size:14px;background:var(--surface);color:var(--ink);cursor:pointer;">
+            <button class="btn btn-primary btn-sm" onclick="applyCustomDateRange()" style="margin:0;">Apply</button>
+          </div>
         </div>
       </div>
       <div id="monthlyReportContent">
@@ -1430,7 +1437,73 @@ function renderMonthlyReportContent(month){
 
 function updateMonthlyReport(){
   const month = document.getElementById('monthSelector').value;
-  document.getElementById('monthlyReportContent').innerHTML = renderMonthlyReportContent(month);
+  const customDateRange = document.getElementById('customDateRange');
+  
+  if(month === 'custom'){
+    // Show custom date range inputs
+    customDateRange.style.display = 'flex';
+  } else {
+    // Hide custom date range inputs
+    customDateRange.style.display = 'none';
+    document.getElementById('monthlyReportContent').innerHTML = renderMonthlyReportContent(month);
+  }
+}
+
+function applyCustomDateRange(){
+  const startDate = document.getElementById('dateRangeStart').value;
+  const endDate = document.getElementById('dateRangeEnd').value;
+  
+  if(!startDate || !endDate){
+    showToast('Please select both start and end dates');
+    return;
+  }
+  
+  if(startDate > endDate){
+    showToast('Start date must be before end date');
+    return;
+  }
+  
+  document.getElementById('monthlyReportContent').innerHTML = renderCustomDateRangeReport(startDate, endDate);
+}
+
+function renderCustomDateRangeReport(startDate, endDate){
+  const incomes = state.incomes.filter(i => i.date >= startDate && i.date <= endDate);
+  const expenses = state.expenses.filter(e => e.date >= startDate && e.date <= endDate);
+  
+  const inc = incomes.reduce((s,i)=>s+Number(i.amount||0),0);
+  const exp = expenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const sav = inc - exp;
+  const savingsRate = inc > 0 ? ((sav / inc) * 100).toFixed(1) : 0;
+  
+  const startFormatted = new Date(startDate).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+  const endFormatted = new Date(endDate).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+  
+  return `
+    <div style="margin-bottom:14px;padding:12px 16px;background:var(--paper);border-radius:8px;border-left:3px solid var(--brass);">
+      <div style="font-size:12px;color:var(--ink-soft);font-weight:600;margin-bottom:4px;">SELECTED PERIOD</div>
+      <div style="font-size:14px;color:var(--ink);font-weight:600;">${startFormatted} to ${endFormatted}</div>
+      <div style="font-size:11px;color:var(--ink-soft);margin-top:4px;">${incomes.length} income &amp; ${expenses.length} expense transactions</div>
+    </div>
+    <div class="grid grid-3">
+      <div style="text-align:center;padding:20px;background:var(--emerald-tint);border-radius:10px;">
+        <div style="font-size:12px;color:var(--emerald-dark);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Income</div>
+        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:var(--emerald-dark);">${money(inc)}</div>
+        <div style="font-size:11px;color:var(--emerald-dark);margin-top:4px;">${incomes.length} transaction${incomes.length!==1?'s':''}</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:var(--brick-tint);border-radius:10px;">
+        <div style="font-size:12px;color:var(--brick);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Expenses</div>
+        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:var(--brick);">${money(exp)}</div>
+        <div style="font-size:11px;color:var(--brick);margin-top:4px;">${expenses.length} transaction${expenses.length!==1?'s':''}</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:var(--brass-tint);border-radius:10px;">
+        <div style="font-size:12px;color:#7A5A24;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Savings</div>
+        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:#7A5A24;">${money(sav)}</div>
+        <div style="font-size:11px;color:#7A5A24;margin-top:4px;">${savingsRate}% savings rate</div>
+      </div>
+    </div>
+    ${sav < 0 ? `<div style="margin-top:14px;padding:12px 16px;background:var(--brick-tint);color:var(--brick);border-radius:8px;font-size:13px;line-height:1.5;">⚠️ You spent more than you earned in this period. Review your expenses and consider cutting discretionary spending.</div>` : ''}
+    ${sav > 0 && savingsRate >= 20 ? `<div style="margin-top:14px;padding:12px 16px;background:var(--emerald-tint);color:var(--emerald-dark);border-radius:8px;font-size:13px;line-height:1.5;">✓ Great job! You're saving ${savingsRate}% of your income in this period — well above the recommended 20% threshold.</div>` : ''}
+  `;
 }
 
 function renderBudgetAlerts(month){
