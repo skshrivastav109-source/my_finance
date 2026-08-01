@@ -1,0 +1,2889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Personal Finance Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F6F5F0;
+  --surface:#FFFFFF;
+  --ink:#16211D;
+  --ink-soft:#5B6660;
+  --line:#E3E1D6;
+  --line-strong:#CFCCBE;
+  --emerald:#1F6F5C;
+  --emerald-dark:#153F35;
+  --emerald-tint:#E4EFEA;
+  --brass:#B8863B;
+  --brass-tint:#F6EDDD;
+  --amber:#B98A2E;
+  --amber-tint:#F8EFDC;
+  --terracotta:#BE6640;
+  --terracotta-tint:#F7E7DD;
+  --brick:#8C3626;
+  --brick-tint:#F5E1DC;
+  --sidebar-bg:#132821;
+  --sidebar-text:#DCE6DF;
+  --sidebar-text-dim:#8FA69A;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(20,30,25,0.05), 0 8px 24px -12px rgba(20,30,25,0.12);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  min-height:100vh;
+}
+.font-display{font-family:'Fraunces',serif;}
+.font-mono{font-family:'IBM Plex Mono',monospace;}
+button{font-family:inherit;cursor:pointer;}
+input,select{font-family:inherit;}
+a{color:inherit;}
+::selection{background:var(--emerald-tint);}
+ 
+/* ---------- Scrollbar subtle ---------- */
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+ 
+/* ================= AUTH SCREEN ================= */
+#authScreen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(31,111,92,0.08), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(184,134,59,0.10), transparent 45%),
+    var(--paper);
+}
+.auth-wrap{
+  width:100%;
+  max-width:940px;
+  display:grid;
+  grid-template-columns:1.05fr 1fr;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+  min-height:560px;
+}
+.auth-brand{
+  background:var(--sidebar-bg);
+  color:var(--sidebar-text);
+  padding:48px 40px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  position:relative;
+  overflow:hidden;
+}
+.auth-brand::after{
+  content:"";
+  position:absolute;
+  right:-60px;top:-60px;
+  width:220px;height:220px;
+  border:1px dashed rgba(220,230,223,0.18);
+  border-radius:50%;
+}
+.brand-mark{display:flex;align-items:center;gap:10px;}
+.brand-mark .dot{width:10px;height:10px;border-radius:50%;background:var(--brass);}
+.brand-mark span{font-family:'Fraunces',serif;font-size:20px;font-weight:600;letter-spacing:0.01em;}
+.auth-brand h1{
+  font-family:'Fraunces',serif;
+  font-size:38px;
+  line-height:1.15;
+  font-weight:600;
+  margin:32px 0 12px;
+}
+.auth-brand p{color:var(--sidebar-text-dim);font-size:14.5px;line-height:1.6;max-width:340px;}
+.ledger-lines{margin-top:28px;display:flex;flex-direction:column;gap:0;}
+.ledger-lines .lr{
+  display:flex;justify-content:space-between;
+  padding:10px 0;border-bottom:1px dashed rgba(220,230,223,0.16);
+  font-size:13px;color:var(--sidebar-text-dim);
+}
+.ledger-lines .lr b{color:var(--sidebar-text);font-weight:500;}
+.auth-brand .foot{font-size:12px;color:rgba(220,230,223,0.45);}
+ 
+.auth-panel{padding:48px 44px;display:flex;flex-direction:column;justify-content:center;}
+.auth-tabs{display:flex;gap:4px;background:var(--paper);border:1px solid var(--line);padding:4px;border-radius:9px;margin-bottom:28px;}
+.auth-tabs button{
+  flex:1;border:none;background:transparent;padding:9px 0;border-radius:6px;
+  font-size:13.5px;font-weight:600;color:var(--ink-soft);letter-spacing:0.01em;
+  transition:all .15s ease;
+}
+.auth-tabs button.active{background:var(--surface);color:var(--emerald-dark);box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;letter-spacing:0.02em;text-transform:uppercase;}
+.field input, .field select{
+  width:100%;padding:11px 13px;border:1px solid var(--line-strong);border-radius:8px;
+  font-size:14.5px;background:var(--surface);color:var(--ink);outline:none;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.field input:focus, .field select:focus{border-color:var(--emerald);box-shadow:0 0 0 3px var(--emerald-tint);}
+.field small.hint{display:block;margin-top:5px;font-size:11.5px;color:var(--ink-soft);}
+.field small.err{display:block;margin-top:5px;font-size:11.5px;color:var(--brick);font-weight:600;}
+.btn{
+  border:none;border-radius:8px;padding:12px 18px;font-weight:600;font-size:14px;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .1s ease, opacity .15s ease, box-shadow .15s ease;
+}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--emerald);color:#fff;width:100%;}
+.btn-primary:hover{background:var(--emerald-dark);}
+.btn-ghost{background:transparent;color:var(--emerald-dark);border:1px solid var(--line-strong);}
+.btn-ghost:hover{background:var(--emerald-tint);}
+.btn-danger{background:var(--brick);color:#fff;}
+.btn-danger:hover{opacity:0.9;}
+.btn-outline{background:transparent;border:1px solid var(--line-strong);color:var(--ink);}
+.btn-outline:hover{border-color:var(--emerald);color:var(--emerald-dark);}
+.btn-sm{padding:7px 12px;font-size:12.5px;border-radius:6px;}
+.auth-msg{font-size:13px;padding:10px 12px;border-radius:8px;margin-bottom:16px;}
+.auth-msg.err{background:var(--brick-tint);color:var(--brick);}
+.auth-msg.ok{background:var(--emerald-tint);color:var(--emerald-dark);}
+.auth-switch{margin-top:18px;font-size:13px;color:var(--ink-soft);text-align:center;}
+.auth-switch a{color:var(--emerald-dark);font-weight:600;cursor:pointer;text-decoration:underline;}
+ 
+/* ================= APP SHELL ================= */
+#appShell{display:none;min-height:100vh;}
+.shell-grid{display:grid;grid-template-columns:236px 1fr;min-height:100vh;}
+.sidebar{
+  background:var(--sidebar-bg);color:var(--sidebar-text);
+  padding:26px 16px;display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;
+}
+.sidebar .brand-mark{padding:0 8px 26px;border-bottom:1px dashed rgba(220,230,223,0.14);margin-bottom:18px;}
+.nav-group-label{font-size:10.5px;letter-spacing:0.09em;text-transform:uppercase;color:var(--sidebar-text-dim);padding:0 12px;margin:6px 0 8px;}
+.navitem{
+  display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;
+  color:var(--sidebar-text-dim);font-size:14px;font-weight:500;cursor:pointer;margin-bottom:2px;
+  transition:background .15s ease, color .15s ease;position:relative;
+}
+.navitem .tabno{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(220,230,223,0.35);
+  width:16px;
+}
+.navitem:hover{background:rgba(255,255,255,0.05);color:var(--sidebar-text);}
+.navitem.active{background:rgba(255,255,255,0.08);color:#fff;}
+.navitem.active::before{
+  content:"";position:absolute;left:-16px;top:8px;bottom:8px;width:3px;background:var(--brass);border-radius:2px;
+}
+.sidebar-foot{margin-top:auto;padding:14px 12px 0;border-top:1px dashed rgba(220,230,223,0.14);font-size:11px;color:var(--sidebar-text-dim);}
+ 
+.main{display:flex;flex-direction:column;min-width:0;}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 32px;border-bottom:1px solid var(--line);background:var(--surface);
+  position:sticky;top:0;z-index:20;
+}
+.topbar h2{font-family:'Fraunces',serif;font-size:22px;font-weight:600;margin:0;}
+.topbar .sub{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+.profile-wrap{position:relative;}
+.profile-btn{
+  display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface);
+  padding:6px 14px 6px 6px;border-radius:30px;
+}
+.avatar{
+  width:32px;height:32px;border-radius:50%;background:var(--emerald);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;font-family:'Fraunces',serif;
+}
+.profile-btn .pname{font-size:13.5px;font-weight:600;}
+.profile-btn .chev{font-size:10px;color:var(--ink-soft);}
+.dropdown{
+  position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;box-shadow:var(--shadow);width:210px;overflow:hidden;display:none;z-index:30;
+}
+.dropdown.open{display:block;}
+.dropdown .ddi{padding:11px 16px;font-size:13.5px;font-weight:500;color:var(--ink);border-bottom:1px solid var(--line);}
+.dropdown .ddi:last-child{border-bottom:none;}
+.dropdown .ddi:hover{background:var(--emerald-tint);color:var(--emerald-dark);}
+.dropdown .ddi.danger:hover{background:var(--brick-tint);color:var(--brick);}
+ 
+.page{padding:28px 32px 60px;max-width:1240px;}
+ 
+/* ---------- Cards / dashboard bits ---------- */
+.grid{display:grid;gap:16px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-2{grid-template-columns:1fr 1fr;}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+@media(max-width:1080px){.grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:640px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr;}}
+
+/* Responsive health banner grid */
+@media(max-width:1000px){
+  .health-banner{flex-direction:column;}
+}
+@media(max-width:900px){
+  div[style*="grid-template-columns:1fr 380px"]{
+    grid-template-columns:1fr !important;
+  }
+}
+ 
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;}
+.card-stat .k{font-size:11.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);font-weight:600;margin-bottom:8px;}
+.card-stat .v{font-family:'Fraunces',serif;font-size:26px;font-weight:600;}
+.card-stat .v.pos{color:var(--emerald-dark);}
+.card-stat .v.neg{color:var(--brick);}
+.card-stat .d{font-size:12px;color:var(--ink-soft);margin-top:6px;}
+ 
+.section-title{font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin:32px 0 14px;display:flex;align-items:center;gap:10px;}
+.section-title .idx{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);border:1px solid var(--line-strong);border-radius:5px;padding:2px 7px;}
+ 
+.health-banner{
+  border-radius:14px;padding:24px 26px;display:flex;align-items:center;gap:20px;border:1px solid var(--line);
+}
+.health-seal{
+  width:74px;height:74px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  border:2px dashed currentColor;font-family:'Fraunces',serif;font-weight:700;font-size:11px;line-height:1.2;
+  text-transform:uppercase;letter-spacing:0.02em;
+}
+.health-title{font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin-bottom:4px;}
+.health-desc{font-size:13.5px;color:var(--ink-soft);line-height:1.55;max-width:640px;}
+ 
+.acct-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;}
+.acct-card .name{font-weight:600;font-size:14.5px;margin-bottom:2px;}
+.acct-card .type{font-size:11.5px;color:var(--ink-soft);margin-bottom:14px;}
+.acct-row{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;border-bottom:1px dashed var(--line);color:var(--ink-soft);}
+.acct-row:last-child{border-bottom:none;}
+.acct-row b{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-weight:600;}
+.acct-bal{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;}
+.acct-bal .lbl{font-size:12px;color:var(--ink-soft);font-weight:600;}
+.acct-bal .amt{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;}
+ 
+.tip-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;}
+.tip-list li{
+  display:flex;gap:12px;font-size:13.5px;line-height:1.5;padding:12px 14px;background:var(--emerald-tint);
+  border-radius:9px;color:var(--emerald-dark);
+}
+.tip-list li .n{font-family:'IBM Plex Mono',monospace;font-weight:600;flex-shrink:0;}
+ 
+/* ---------- Forms on Income/Daybook/Loans pages ---------- */
+.form-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:24px;}
+.form-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:end;}
+@media(max-width:1000px){.form-grid{grid-template-columns:repeat(2,1fr);}}
+.form-grid .field{margin-bottom:0;}
+.form-grid .full{grid-column:1/-1;}
+ 
+/* ---------- Tables (ledger-style, ruled paper) ---------- */
+.table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+thead th{
+  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-soft);
+  padding:12px 16px;background:var(--paper);border-bottom:1px solid var(--line);font-weight:700;
+}
+tbody td{padding:12px 16px;font-size:13.5px;border-bottom:1px dashed var(--line);color:var(--ink);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:rgba(31,111,92,0.03);}
+td.amt{font-family:'IBM Plex Mono',monospace;text-align:right;font-weight:600;}
+td.amt.credit{color:var(--emerald-dark);}
+td.amt.debit{color:var(--brick);}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--brass-tint);color:var(--brass);}
+.row-actions{display:flex;gap:6px;}
+.icon-btn{
+  border:1px solid var(--line-strong);background:var(--surface);border-radius:6px;padding:5px 9px;font-size:12px;color:var(--ink-soft);
+}
+.icon-btn:hover{border-color:var(--brick);color:var(--brick);}
+.empty-state{padding:48px 20px;text-align:center;color:var(--ink-soft);}
+.empty-state .em-title{font-family:'Fraunces',serif;font-size:16px;color:var(--ink);margin-bottom:6px;}
+.empty-state .em-sub{font-size:13px;}
+ 
+/* ---------- Modals ---------- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(19,40,33,0.45);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:14px;width:100%;max-width:440px;padding:26px;box-shadow:0 20px 60px -20px rgba(0,0,0,0.4);}
+.modal.wide{max-width:520px;}
+.modal h3{font-family:'Fraunces',serif;font-size:19px;margin:0 0 4px;}
+.modal .msub{font-size:12.5px;color:var(--ink-soft);margin-bottom:18px;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+.modal-actions .btn{flex:1;}
+.chip-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.chip{
+  background:var(--brass-tint);color:#7A5A24;border-radius:20px;padding:6px 13px;font-size:12.5px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+}
+.detail-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.detail-row:last-child{border-bottom:none;}
+.detail-row .lbl{color:var(--ink-soft);}
+.detail-row .val{font-weight:600;}
+ 
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:6px;}
+.hint-banner{
+  background:var(--brass-tint);color:#7A5A24;border-radius:9px;padding:11px 15px;font-size:12.5px;margin-bottom:20px;line-height:1.5;
+}
+.toast{
+  position:fixed;bottom:24px;right:24px;background:var(--sidebar-bg);color:#fff;padding:13px 20px;border-radius:9px;
+  font-size:13.5px;box-shadow:var(--shadow);z-index:200;display:none;font-weight:500;
+}
+.toast.show{display:block;animation:toastin .2s ease;}
+@keyframes toastin{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* ---------- Expense Chart Styles ---------- */
+.expense-chart-container{display:flex;gap:32px;align-items:center;flex-wrap:wrap;}
+.chart-visual{flex:0 0 280px;position:relative;display:flex;align-items:center;justify-content:center;}
+.donut-chart{width:240px;height:240px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;}
+.donut-center{
+  position:absolute;width:160px;height:160px;background:var(--surface);border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+.donut-center .label{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;}
+.donut-center .value{font-family:'Fraunces',serif;font-size:26px;font-weight:600;color:var(--ink);margin-top:4px;}
+.chart-legend{flex:1;min-width:280px;}
+.legend-item{
+  display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+  border-radius:8px;margin-bottom:8px;background:var(--paper);
+  transition:all .15s ease;cursor:pointer;
+}
+.legend-item:hover{background:var(--line);transform:translateX(4px);}
+.legend-left{display:flex;align-items:center;gap:12px;flex:1;}
+.legend-color{width:14px;height:14px;border-radius:3px;flex-shrink:0;}
+.legend-label{font-size:13.5px;font-weight:500;color:var(--ink);}
+.legend-right{display:flex;align-items:baseline;gap:8px;}
+.legend-amount{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--ink);}
+.legend-percent{font-size:11px;color:var(--ink-soft);font-weight:600;}
+.legend-bar{height:6px;background:var(--line);border-radius:3px;margin-top:6px;overflow:hidden;}
+.legend-bar-fill{height:100%;border-radius:3px;transition:width .3s ease;}
+
+/* ---------- Budget Card Styles ---------- */
+.budget-summary{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;
+}
+.budget-summary-card{
+  padding:16px;background:var(--paper);border-radius:8px;text-align:center;
+}
+.budget-summary-label{
+  font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:6px;
+}
+.budget-summary-value{
+  font-family:'Fraunces',serif;font-size:22px;font-weight:600;
+}
+
+@media(max-width:900px){
+  .shell-grid{grid-template-columns:1fr;}
+  .sidebar{position:static;height:auto;flex-direction:row;overflow-x:auto;padding:14px;}
+  .sidebar .brand-mark{display:none;}
+  .nav-group-label{display:none;}
+  .sidebar-foot{display:none;}
+  .navitem{white-space:nowrap;}
+  .page{padding:20px 16px 60px;}
+  .topbar{padding:14px 16px;}
+}
+</style>
+</head>
+<body>
+ 
+<!-- ================= AUTH SCREEN ================= -->
+<div id="authScreen">
+  <div class="auth-wrap">
+    <div class="auth-brand">
+      <div>
+        <div class="brand-mark"><span class="dot"></span><span>Ledger</span></div>
+        <h1>Know exactly<br>where you stand.</h1>
+        <p>One place for income, day-to-day spending and loan EMIs — with a plain-language read on your financial health.</p>
+      </div>
+      <div class="ledger-lines">
+        <div class="lr"><span>Income tracking</span><b>by date &amp; account</b></div>
+        <div class="lr"><span>Daily expenses</span><b>logged as a daybook</b></div>
+        <div class="lr"><span>Loans &amp; EMIs</span><b>health check built in</b></div>
+      </div>
+      <div class="foot">Your data is saved to your account and only unlocked by your password.</div>
+    </div>
+    <div class="auth-panel">
+      <div class="auth-tabs">
+        <button id="tabLoginBtn" class="active" onclick="switchAuthTab('login')">Log In</button>
+        <button id="tabSignupBtn" onclick="switchAuthTab('signup')">Sign Up</button>
+      </div>
+      <div id="authMsg"></div>
+ 
+      <form id="loginForm" onsubmit="return handleLogin(event)">
+        <div class="field"><label>Username</label><input type="text" id="li_username" autocomplete="username" required></div>
+        <div class="field"><label>Password</label><input type="password" id="li_password" autocomplete="current-password" required></div>
+        <button type="submit" class="btn btn-primary">Log In</button>
+      </form>
+ 
+      <form id="signupForm" style="display:none;" onsubmit="return handleSignup(event)">
+        <div class="field"><label>Name</label><input type="text" id="su_name" required></div>
+        <div class="field">
+          <label>Email</label><input type="email" id="su_email" required>
+          <small class="hint">We'll send a verification code to this email.</small>
+        </div>
+        <div class="field">
+          <label>Username</label><input type="text" id="su_username" required>
+          <small class="hint">Letters and numbers only (no special characters).</small>
+        </div>
+        <div class="field">
+          <label>Password</label><input type="password" id="su_password" minlength="8" required>
+          <small class="hint">Min 8 chars, 1 uppercase, 1 special char (#$@%&).</small>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Account</button>
+      </form>
+      
+      <form id="otpForm" style="display:none;" onsubmit="return handleOTPVerify(event)">
+        <div class="field">
+          <label>Verification Code</label>
+          <input type="text" id="otp_code" maxlength="6" placeholder="Enter 6-digit code" required>
+          <small class="hint">Check your email for the verification code.</small>
+        </div>
+        <button type="submit" class="btn btn-primary">Verify & Complete Signup</button>
+        <button type="button" class="btn btn-outline" onclick="resendOTP()" style="margin-top:10px;">Resend Code</button>
+      </form>
+ 
+      <div class="auth-switch" id="authSwitchLine">
+        New here? <a onclick="switchAuthTab('signup')">Create an account</a>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- ================= APP SHELL ================= -->
+<div id="appShell">
+  <div class="shell-grid">
+    <div class="sidebar">
+      <div class="brand-mark"><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--brass);margin-right:8px;"></span><span style="font-family:'Fraunces',serif;font-weight:600;font-size:17px;">Ledger</span></div>
+      <div class="nav-group-label">Menu</div>
+      <div class="navitem active" data-page="dashboard" onclick="navigate('dashboard')"><span class="tabno">01</span>Dashboard</div>
+      <div class="navitem" data-page="income" onclick="navigate('income')"><span class="tabno">02</span>Income</div>
+      <div class="navitem" data-page="daybook" onclick="navigate('daybook')"><span class="tabno">03</span>Daybook</div>
+      <div class="navitem" data-page="loans" onclick="navigate('loans')"><span class="tabno">04</span>Loans &amp; EMI</div>
+      <div class="navitem" data-page="budgets" onclick="navigate('budgets')"><span class="tabno">05</span>Budget Allocation</div>
+      <div class="navitem" data-page="transfers" onclick="navigate('transfers')"><span class="tabno">06</span>Transfer Money</div>
+      <div class="sidebar-foot">Signed in as<br><b id="sidebarUserLine" style="color:var(--sidebar-text);"></b></div>
+    </div>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <h2 id="pageTitle">Dashboard</h2>
+          <div class="sub" id="pageSub">Your finances, at a glance</div>
+        </div>
+        <div class="profile-wrap">
+          <button class="profile-btn" onclick="toggleProfileMenu()">
+            <span class="avatar" id="avatarInitial">?</span>
+            <span class="pname" id="profileName">—</span>
+            <span class="chev">▾</span>
+          </button>
+          <div class="dropdown" id="profileDropdown">
+            <div class="ddi" onclick="openMyDetails()">My Details</div>
+            <div class="ddi" onclick="openAddBank()">Add Bank Account</div>
+            <div class="ddi" onclick="openChangePassword()">Change Password</div>
+            <div class="ddi danger" onclick="openLogoutConfirm()">Logout</div>
+          </div>
+        </div>
+      </div>
+      <div class="page" id="pageContent"></div>
+    </div>
+  </div>
+</div>
+ 
+<!-- ================= MODALS ================= -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBody"></div>
+</div>
+ 
+<div class="toast" id="toast"></div>
+ 
+<script>
+/* ============================================================
+   STORAGE HELPERS
+============================================================ */
+async function sGet(key, shared){
+  try{ 
+    const storageKey = shared ? 'shared_' + key : 'session_' + key;
+    const data = localStorage.getItem(storageKey); 
+    return data ? JSON.parse(data) : null; 
+  }
+  catch(e){ 
+    console.error('storage get failed', e); 
+    return null; 
+  }
+}
+async function sSet(key, value, shared){
+  try{ 
+    const storageKey = shared ? 'shared_' + key : 'session_' + key;
+    localStorage.setItem(storageKey, JSON.stringify(value)); 
+    return true; 
+  }
+  catch(e){ 
+    console.error('storage set failed', e); 
+    return false; 
+  }
+}
+ 
+function hashPassword(pw){
+  const str = 'ledger_salt::' + pw;
+  let h = 0;
+  for(let i=0;i<str.length;i++){ h = (Math.imul(31,h) + str.charCodeAt(i)) | 0; }
+  return 'h' + (h>>>0).toString(36);
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function money(n){
+  const v = Number(n)||0;
+  const sign = v < 0 ? '-' : '';
+  return sign + '₹' + Math.abs(v).toLocaleString('en-IN', {maximumFractionDigits:0});
+}
+function fmtDate(d){
+  if(!d) return '—';
+  const dt = new Date(d + 'T00:00:00');
+  if(isNaN(dt)) return d;
+  return dt.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+}
+function monthKey(d){ return (d||'').slice(0,7); }
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+ 
+/* ============================================================
+   APP STATE
+============================================================ */
+let state = {
+  user: null,        // {name,email,username,passwordHash,createdAt}
+  banks: [],          // [{id,bankName,last4}]
+  incomes: [],         // [{id,date,source,category,amount,accountId}]
+  expenses: [],        // [{id,date,category,description,amount,paymentMode}]
+  loans: [],            // [{id,name,principal,emi,tenureMonths,startDate,rate}]
+  budgets: [],          // [{id,category,amount,month}] - month format: YYYY-MM
+  transfers: []        // [{id,date,fromAccount,toAccount,amount,type,recipientName,note,status,dueDate}]
+};
+
+// Session management
+let sessionTimeout = null;
+let lastActivityTime = Date.now();
+const SESSION_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+function resetSessionTimer(){
+  lastActivityTime = Date.now();
+  clearTimeout(sessionTimeout);
+  
+  sessionTimeout = setTimeout(() => {
+    autoLogout();
+  }, SESSION_DURATION);
+}
+
+async function autoLogout(){
+  if(state.user){
+    await sSet('session', '', false);
+    state = {user:null, banks:[], incomes:[], expenses:[], loans:[], budgets:[], transfers:[]};
+    
+    // Show logout message
+    document.getElementById('appShell').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('loginForm').reset();
+    switchAuthTab('login');
+    authMsg('Session expired due to inactivity. Please login again.', false);
+  }
+}
+
+function trackUserActivity(){
+  resetSessionTimer();
+}
+
+// Activity tracking events
+function setupActivityTracking(){
+  const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+  
+  events.forEach(event => {
+    document.addEventListener(event, trackUserActivity, true);
+  });
+}
+ 
+const INCOME_CATEGORIES = ['Salary','Freelance / Business','Investment Returns','Rental Income','Gift Received','Refund','Other Income'];
+const EXPENSE_CATEGORIES = ['Food & Groceries','Rent / Housing','Transport','Utilities & Bills','Shopping','Health & Medical','Education','Insurance','Entertainment','Travel','EMI / Loan Payment','Other'];
+
+// 50/30/20 Rule Classification
+const NEEDS_CATEGORIES = ['Food & Groceries','Rent / Housing','Utilities & Bills','Health & Medical','Insurance','EMI / Loan Payment','Transport'];
+const WANTS_CATEGORIES = ['Shopping','Entertainment','Travel','Other'];
+const SAVINGS_CATEGORIES = ['Education']; // Education is investment in future
+
+function categorizeExpense(category){
+  if(NEEDS_CATEGORIES.includes(category)) return 'needs';
+  if(WANTS_CATEGORIES.includes(category)) return 'wants';
+  if(SAVINGS_CATEGORIES.includes(category)) return 'savings';
+  return 'needs'; // Default to needs for safety
+}
+
+// 50/30/20 Rule calculations
+function get503020Breakdown(month = null){
+  let expenses = state.expenses;
+  if(month) expenses = expenses.filter(e=>monthKey(e.date)===month);
+  
+  const breakdown = {
+    needs: 0,
+    wants: 0,
+    savings: 0,
+    total: 0
+  };
+  
+  expenses.forEach(expense => {
+    const amount = Number(expense.amount || 0);
+    const category = categorizeExpense(expense.category);
+    breakdown[category] += amount;
+    breakdown.total += amount;
+  });
+  
+  // Calculate percentages
+  breakdown.needsPercent = breakdown.total > 0 ? (breakdown.needs / breakdown.total * 100).toFixed(1) : 0;
+  breakdown.wantsPercent = breakdown.total > 0 ? (breakdown.wants / breakdown.total * 100).toFixed(1) : 0;
+  breakdown.savingsPercent = breakdown.total > 0 ? (breakdown.savings / breakdown.total * 100).toFixed(1) : 0;
+  
+  return breakdown;
+}
+
+function getExpenseCategoryBreakdown(month = null){
+  let expenses = state.expenses;
+  if(month) expenses = expenses.filter(e=>monthKey(e.date)===month);
+  
+  const breakdown = {};
+  let total = 0;
+  
+  expenses.forEach(expense => {
+    const amount = Number(expense.amount || 0);
+    const category = expense.category || 'Other';
+    breakdown[category] = (breakdown[category] || 0) + amount;
+    total += amount;
+  });
+  
+  return Object.entries(breakdown)
+    .map(([category, amount]) => ({
+      category,
+      amount,
+      percentage: total > 0 ? ((amount / total) * 100).toFixed(1) : 0
+    }))
+    .sort((a, b) => b.amount - a.amount);
+}
+ 
+function paymentModes(){
+  return [{id:'cash', label:'Cash'}].concat(state.banks.map(b=>({id:b.id, label: b.bankName + ' (••' + b.last4 + ')'})));
+}
+function modeLabel(id){
+  if(id === 'cash') return 'Cash';
+  const b = state.banks.find(x=>x.id===id);
+  return b ? (b.bankName + ' (••' + b.last4 + ')') : 'Unknown';
+}
+ 
+/* ============================================================
+   AUTH
+============================================================ */
+let tempSignupData = null; // Store signup data temporarily during OTP verification
+
+function switchAuthTab(tab){
+  document.getElementById('tabLoginBtn').classList.toggle('active', tab==='login');
+  document.getElementById('tabSignupBtn').classList.toggle('active', tab==='signup');
+  document.getElementById('loginForm').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('signupForm').style.display = tab==='signup' ? 'block' : 'none';
+  document.getElementById('otpForm').style.display = 'none';
+  document.getElementById('authSwitchLine').innerHTML = tab==='login'
+    ? 'New here? <a onclick="switchAuthTab(\'signup\')">Create an account</a>'
+    : 'Already have an account? <a onclick="switchAuthTab(\'login\')">Log in</a>';
+  document.getElementById('authMsg').innerHTML = '';
+  tempSignupData = null;
+}
+function authMsg(text, ok){
+  document.getElementById('authMsg').innerHTML = `<div class="auth-msg ${ok?'ok':'err'}">${text}</div>`;
+}
+
+function validatePassword(password){
+  if(password.length < 8) return 'Password must be at least 8 characters long.';
+  if(!/[A-Z]/.test(password)) return 'Password must contain at least 1 uppercase letter.';
+  if(!/[#$@%&]/.test(password)) return 'Password must contain at least 1 special character (#$@%&).';
+  return null;
+}
+
+function validateUsername(username){
+  if(!/^[a-zA-Z0-9]+$/.test(username)) return 'Username can only contain letters and numbers (no special characters).';
+  if(username.length < 3) return 'Username must be at least 3 characters long.';
+  return null;
+}
+
+function generateOTP(){
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+}
+
+function sendOTPEmail(email, otp){
+  // In production, this would call a backend API to send real email
+  // For now, we'll simulate it and log to console
+  console.log('='.repeat(50));
+  console.log('📧 EMAIL VERIFICATION CODE');
+  console.log('='.repeat(50));
+  console.log(`To: ${email}`);
+  console.log(`Your verification code is: ${otp}`);
+  console.log('This code will expire in 10 minutes.');
+  console.log('='.repeat(50));
+  
+  // Show an alert to simulate email sent
+  alert(`📧 Verification code sent to ${email}\n\nFor demo purposes, check the browser console (F12) to see the code.\n\nCode: ${otp}`);
+}
+ 
+async function handleSignup(e){
+  e.preventDefault();
+  const name = document.getElementById('su_name').value.trim();
+  const email = document.getElementById('su_email').value.trim();
+  const username = document.getElementById('su_username').value.trim();
+  const password = document.getElementById('su_password').value;
+ 
+  if(!name || !email || !username){ authMsg('Please fill in every field.'); return false; }
+  
+  // Validate username
+  const usernameError = validateUsername(username);
+  if(usernameError){ authMsg(usernameError); return false; }
+  
+  // Validate password
+  const passwordError = validatePassword(password);
+  if(passwordError){ authMsg(passwordError); return false; }
+ 
+  const existing = await sGet('user:'+username.toLowerCase(), true);
+  if(existing){ authMsg('That username is already taken. Try another.'); return false; }
+ 
+  // Generate and store OTP
+  const otp = generateOTP();
+  const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes from now
+  
+  // Store temporary signup data
+  tempSignupData = {
+    name,
+    email,
+    username: username.toLowerCase(),
+    password,
+    otp,
+    otpExpiry
+  };
+ 
+  // Send OTP to email (simulated)
+  sendOTPEmail(email, otp);
+ 
+  // Show OTP form
+  document.getElementById('signupForm').style.display = 'none';
+  document.getElementById('otpForm').style.display = 'block';
+  document.getElementById('authSwitchLine').innerHTML = '';
+  authMsg('Verification code sent! Check your email.', true);
+  
+  return false;
+}
+ 
+async function handleOTPVerify(e){
+  e.preventDefault();
+  const enteredOTP = document.getElementById('otp_code').value.trim();
+ 
+  if(!tempSignupData){
+    authMsg('Session expired. Please sign up again.');
+    switchAuthTab('signup');
+    return false;
+  }
+ 
+  // Check if OTP expired
+  if(Date.now() > tempSignupData.otpExpiry){
+    authMsg('Verification code expired. Please request a new one.');
+    return false;
+  }
+ 
+  // Verify OTP
+  if(enteredOTP !== tempSignupData.otp){
+    authMsg('Invalid verification code. Please try again.');
+    return false;
+  }
+ 
+  // OTP is correct, create the account
+  const userObj = {
+    name: tempSignupData.name,
+    email: tempSignupData.email,
+    username: tempSignupData.username,
+    passwordHash: hashPassword(tempSignupData.password),
+    emailVerified: true,
+    createdAt: new Date().toISOString()
+  };
+ 
+  await sSet('user:'+tempSignupData.username, userObj, true);
+  await sSet('banks:'+tempSignupData.username, [], true);
+  await sSet('income:'+tempSignupData.username, [], true);
+  await sSet('expenses:'+tempSignupData.username, [], true);
+  await sSet('loans:'+tempSignupData.username, [], true);
+  await sSet('budgets:'+tempSignupData.username, [], true);
+  await sSet('transfers:'+tempSignupData.username, [], true);
+ 
+  authMsg('Account created successfully! You can log in now.', true);
+  
+  // Clear temporary data
+  const savedUsername = tempSignupData.username;
+  tempSignupData = null;
+  
+  // Switch to login and prefill username
+  setTimeout(() => {
+    switchAuthTab('login');
+    document.getElementById('li_username').value = savedUsername;
+  }, 1500);
+ 
+  return false;
+}
+ 
+function resendOTP(){
+  if(!tempSignupData){
+    authMsg('Session expired. Please sign up again.');
+    switchAuthTab('signup');
+    return;
+  }
+ 
+  // Generate new OTP
+  const newOTP = generateOTP();
+  const newExpiry = Date.now() + 10 * 60 * 1000;
+  
+  tempSignupData.otp = newOTP;
+  tempSignupData.otpExpiry = newExpiry;
+ 
+  sendOTPEmail(tempSignupData.email, newOTP);
+  authMsg('New verification code sent!', true);
+  document.getElementById('otp_code').value = '';
+}
+ 
+async function handleLogin(e){
+  e.preventDefault();
+  const username = document.getElementById('li_username').value.trim().toLowerCase();
+  const password = document.getElementById('li_password').value;
+  const user = await sGet('user:'+username, true);
+  if(!user || user.passwordHash !== hashPassword(password)){
+    authMsg('Username or password is incorrect.');
+    return false;
+  }
+  await sSet('session', username, false);
+  await loadSession(username);
+  return false;
+}
+ 
+async function loadSession(username){
+  const user = await sGet('user:'+username, true);
+  if(!user) return false;
+  state.user = user;
+  state.banks = (await sGet('banks:'+username, true)) || [];
+  state.incomes = (await sGet('income:'+username, true)) || [];
+  state.expenses = (await sGet('expenses:'+username, true)) || [];
+  state.loans = (await sGet('loans:'+username, true)) || [];
+  state.budgets = (await sGet('budgets:'+username, true)) || [];
+  state.transfers = (await sGet('transfers:'+username, true)) || [];
+ 
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = 'block';
+  document.getElementById('profileName').textContent = user.name.split(' ')[0];
+  document.getElementById('avatarInitial').textContent = user.name.trim()[0].toUpperCase();
+  document.getElementById('sidebarUserLine').textContent = '@'+user.username;
+  
+  // Start session management
+  setupActivityTracking();
+  resetSessionTimer();
+  
+  navigate('dashboard');
+  return true;
+}
+ 
+async function persistAll(){
+  if(!state.user) return;
+  const u = state.user.username;
+  await Promise.all([
+    sSet('banks:'+u, state.banks, true),
+    sSet('income:'+u, state.incomes, true),
+    sSet('expenses:'+u, state.expenses, true),
+    sSet('loans:'+u, state.loans, true),
+    sSet('budgets:'+u, state.budgets, true),
+    sSet('transfers:'+u, state.transfers, true)
+  ]);
+}
+ 
+function toggleProfileMenu(){ document.getElementById('profileDropdown').classList.toggle('open'); }
+document.addEventListener('click', (e)=>{
+  const wrap = document.querySelector('.profile-wrap');
+  if(wrap && !wrap.contains(e.target)) document.getElementById('profileDropdown').classList.remove('open');
+});
+ 
+function openLogoutConfirm(){
+  toggleProfileMenu();
+  openModal(`
+    <h3>Log out?</h3>
+    <div class="msub">You'll need your username and password to sign back in.</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="doLogout()">Log Out</button>
+    </div>
+  `);
+}
+async function doLogout(){
+  // Clear session timer
+  clearTimeout(sessionTimeout);
+  
+  await sSet('session', '', false);
+  state = {user:null, banks:[], incomes:[], expenses:[], loans:[], budgets:[], transfers:[]};
+  closeModal();
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('loginForm').reset();
+  switchAuthTab('login');
+}
+ 
+/* ============================================================
+   MODAL HELPERS
+============================================================ */
+function openModal(html, wide){
+  document.getElementById('modalBody').className = 'modal' + (wide ? ' wide' : '');
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'modalOverlay') closeModal();
+});
+ 
+/* ---- My Details ---- */
+function openMyDetails(){
+  toggleProfileMenu();
+  const bankChips = state.banks.length
+    ? `<div class="chip-list">${state.banks.map(b=>`<span class="chip">${b.bankName} (••${b.last4})</span>`).join('')}</div>`
+    : `<div style="font-size:12.5px;color:var(--ink-soft);">No bank accounts added yet.</div>`;
+  openModal(`
+    <h3>My Details</h3>
+    <div class="msub">Your account information.</div>
+    <div class="detail-row"><span class="lbl">Name</span><span class="val">${state.user.name}</span></div>
+    <div class="detail-row"><span class="lbl">Email</span><span class="val">${state.user.email}</span></div>
+    <div class="detail-row"><span class="lbl">Username</span><span class="val">@${state.user.username}</span></div>
+    <div style="margin-top:14px;">
+      <div class="lbl" style="font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;">Bank Accounts</div>
+      ${bankChips}
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="openAddBank()">Add Bank Account</button>
+    </div>
+  `, true);
+}
+ 
+/* ---- Add Bank Account ---- */
+function openAddBank(){
+  toggleProfileMenu();
+  openModal(`
+    <h3>Add Bank Account</h3>
+    <div class="msub">This account will appear as a dropdown option in Income and Daybook.</div>
+    <div class="field"><label>Bank Name</label><input type="text" id="ab_name" placeholder="e.g. IDFC First Bank"></div>
+    <div class="field"><label>Account No. (Last 4 digits)</label><input type="text" id="ab_last4" maxlength="4" placeholder="e.g. 2518"></div>
+    <div id="ab_err"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddBank()">Add</button>
+    </div>
+  `);
+}
+async function submitAddBank(){
+  const name = document.getElementById('ab_name').value.trim();
+  const last4 = document.getElementById('ab_last4').value.trim();
+  if(!name || !/^\d{4}$/.test(last4)){
+    document.getElementById('ab_err').innerHTML = '<small class="err">Enter a bank name and exactly 4 digits.</small>';
+    return;
+  }
+  state.banks.push({id:uid(), bankName:name, last4});
+  await persistAll();
+  closeModal();
+  showToast(`${name} (••${last4}) added`);
+  renderCurrentPage();
+}
+ 
+/* ---- Change Password ---- */
+function openChangePassword(){
+  toggleProfileMenu();
+  openModal(`
+    <h3>Change Password</h3>
+    <div class="msub">Choose a new password of at least 6 characters.</div>
+    <div class="field"><label>Old Password</label><input type="password" id="cp_old"></div>
+    <div class="field"><label>New Password</label><input type="password" id="cp_new" minlength="6"></div>
+    <div class="field"><label>Confirm New Password</label><input type="password" id="cp_confirm" minlength="6"></div>
+    <div id="cp_err"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitChangePassword()">Update Password</button>
+    </div>
+  `);
+}
+async function submitChangePassword(){
+  const oldPw = document.getElementById('cp_old').value;
+  const newPw = document.getElementById('cp_new').value;
+  const confirmPw = document.getElementById('cp_confirm').value;
+  const errBox = document.getElementById('cp_err');
+  if(hashPassword(oldPw) !== state.user.passwordHash){ errBox.innerHTML = '<small class="err">Old password is incorrect.</small>'; return; }
+  if(newPw.length < 6){ errBox.innerHTML = '<small class="err">New password needs at least 6 characters.</small>'; return; }
+  if(newPw !== confirmPw){ errBox.innerHTML = '<small class="err">New password and confirmation do not match.</small>'; return; }
+  state.user.passwordHash = hashPassword(newPw);
+  await sSet('user:'+state.user.username, state.user, true);
+  closeModal();
+  showToast('Password updated');
+}
+ 
+/* ============================================================
+   NAVIGATION
+============================================================ */
+const PAGE_META = {
+  dashboard:{title:'Dashboard', sub:'Your finances, at a glance'},
+  income:{title:'Income', sub:'Every rupee coming in, by date and account'},
+  daybook:{title:'Daybook', sub:'Log day-to-day spending as it happens'},
+  loans:{title:'Loans & EMI', sub:'Track obligations and see your debt load'},
+  budgets:{title:'Budget Allocation', sub:'Set spending limits and track budget usage by category'},
+  transfers:{title:'Transfer Money', sub:'Move money between accounts or send to others'}
+};
+let currentPage = 'dashboard';
+function navigate(page){
+  currentPage = page;
+  document.querySelectorAll('.navitem').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+  document.getElementById('pageTitle').textContent = PAGE_META[page].title;
+  document.getElementById('pageSub').textContent = PAGE_META[page].sub;
+  renderCurrentPage();
+}
+function renderCurrentPage(){
+  if(currentPage === 'dashboard') renderDashboard();
+  else if(currentPage === 'income') renderIncome();
+  else if(currentPage === 'daybook') renderDaybook();
+  else if(currentPage === 'loans') renderLoans();
+  else if(currentPage === 'budgets') renderBudgets();
+  else if(currentPage === 'transfers') renderTransfers();
+}
+ 
+/* ============================================================
+   CALCULATIONS
+============================================================ */
+function totalIncome(){ return state.incomes.reduce((s,i)=>s+Number(i.amount||0),0); }
+function totalExpenses(){ return state.expenses.reduce((s,e)=>s+Number(e.amount||0),0); }
+function totalMonthlyEMI(){ return state.loans.reduce((s,l)=>s+Number(l.emi||0),0); }
+
+// Monthly calculations for specific month (YYYY-MM format)
+function monthlyIncome(month){
+  return state.incomes.filter(i=>monthKey(i.date)===month).reduce((s,i)=>s+Number(i.amount||0),0);
+}
+function monthlyExpenses(month){
+  return state.expenses.filter(e=>monthKey(e.date)===month).reduce((s,e)=>s+Number(e.amount||0),0);
+}
+function monthlySavings(month){
+  return monthlyIncome(month) - monthlyExpenses(month);
+}
+
+// Get list of all months that have data
+function getAvailableMonths(){
+  const set = new Set();
+  state.incomes.forEach(i=>{ if(i.date) set.add(monthKey(i.date)); });
+  state.expenses.forEach(e=>{ if(e.date) set.add(monthKey(e.date)); });
+  set.delete('');
+  return Array.from(set).sort().reverse(); // Most recent first
+}
+
+function formatMonthLabel(monthKey){
+  if(!monthKey) return '—';
+  const [year, month] = monthKey.split('-');
+  const date = new Date(year, month - 1, 1);
+  return date.toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+}
+
+// Get expense breakdown by category
+function getExpensesByCategory(month){
+  let expenses = state.expenses;
+  if(month) expenses = expenses.filter(e=>monthKey(e.date)===month);
+  
+  const breakdown = {};
+  expenses.forEach(e=>{
+    const cat = e.category || 'Other';
+    breakdown[cat] = (breakdown[cat] || 0) + Number(e.amount || 0);
+  });
+  
+  const total = Object.values(breakdown).reduce((s,v)=>s+v, 0);
+  
+  return Object.entries(breakdown)
+    .map(([category, amount])=>({
+      category,
+      amount,
+      percentage: total > 0 ? ((amount/total)*100).toFixed(1) : 0
+    }))
+    .sort((a,b)=>b.amount - a.amount);
+}
+
+// Category colors for consistent visualization
+const CATEGORY_COLORS = {
+  'Food & Groceries': '#1F6F5C',
+  'Rent / Housing': '#8C3626',
+  'Transport': '#B8863B',
+  'Utilities & Bills': '#BE6640',
+  'Shopping': '#B98A2E',
+  'Health & Medical': '#1F6F5C',
+  'Education': '#153F35',
+  'Insurance': '#5B6660',
+  'Entertainment': '#B8863B',
+  'Travel': '#BE6640',
+  'EMI / Loan Payment': '#8C3626',
+  'Other': '#CFCCBE'
+};
+
+// Budget helper functions
+function getBudgetForCategory(category, month){
+  const budget = state.budgets.find(b=>b.category===category && b.month===month);
+  return budget ? budget.amount : 0;
+}
+
+function getSpentForCategory(category, month){
+  return state.expenses
+    .filter(e=>e.category===category && monthKey(e.date)===month)
+    .reduce((s,e)=>s+Number(e.amount||0), 0);
+}
+
+function getBudgetStatus(category, month){
+  const budget = getBudgetForCategory(category, month);
+  const spent = getSpentForCategory(category, month);
+  const remaining = budget - spent;
+  const percentage = budget > 0 ? (spent / budget * 100) : 0;
+  
+  let status = 'ok';
+  if(percentage >= 100) status = 'exceeded';
+  else if(percentage >= 80) status = 'warning';
+  
+  return { budget, spent, remaining, percentage: percentage.toFixed(1), status };
+}
+ 
+function distinctMonthsTracked(){
+  const set = new Set();
+  state.incomes.forEach(i=>set.add(monthKey(i.date)));
+  state.expenses.forEach(e=>set.add(monthKey(e.date)));
+  set.delete('');
+  return Math.max(set.size, 1);
+}
+function avgMonthlyIncome(){ return totalIncome() / distinctMonthsTracked(); }
+function avgMonthlyExpenses(){ return totalExpenses() / distinctMonthsTracked(); }
+ 
+function accountBalance(accountId){
+  const credit = state.incomes.filter(i=>i.accountId===accountId).reduce((s,i)=>s+Number(i.amount||0),0);
+  const debit = state.expenses.filter(e=>e.paymentMode===accountId).reduce((s,e)=>s+Number(e.amount||0),0);
+  
+  // Add transfers: money coming in (toAccount) and going out (fromAccount)
+  const transferIn = state.transfers.filter(t=>t.toAccount===accountId).reduce((s,t)=>s+Number(t.amount||0),0);
+  const transferOut = state.transfers.filter(t=>t.fromAccount===accountId).reduce((s,t)=>s+Number(t.amount||0),0);
+  
+  return {
+    credit: credit + transferIn, 
+    debit: debit + transferOut, 
+    balance: credit + transferIn - debit - transferOut
+  };
+}
+ 
+function financialHealth(){
+  const income = avgMonthlyIncome();
+  const emi = totalMonthlyEMI();
+  const exp = avgMonthlyExpenses();
+  if(income <= 0){
+    return {level:'unknown', label:'Add Income to Begin', color:'var(--ink-soft)', tint:'var(--paper)',
+      desc:'Log at least one income entry so we can measure your EMI and expense load against what you actually earn.'};
+  }
+  const emiRatio = emi / income;
+  const outflowRatio = (emi + exp) / income;
+ 
+  if(emiRatio <= 0.20 && outflowRatio <= 0.70){
+    return {level:'healthy', label:'Healthy', color:'var(--emerald-dark)', tint:'var(--emerald-tint)',
+      desc:`Your EMIs use ${(emiRatio*100).toFixed(0)}% of monthly income and total outflow is ${(outflowRatio*100).toFixed(0)}%. You're comfortably within safe limits and building savings.`};
+  }
+  if(emiRatio <= 0.35 && outflowRatio <= 0.85){
+    return {level:'average', label:'Average', color:'var(--amber)', tint:'var(--amber-tint)',
+      desc:`EMIs take up ${(emiRatio*100).toFixed(0)}% of income and total outflow is ${(outflowRatio*100).toFixed(0)}%. Manageable, but there's limited room for surprises — tighten discretionary spend where you can.`};
+  }
+  if(emiRatio <= 0.50 && outflowRatio <= 1.0){
+    return {level:'weak', label:'Weak', color:'var(--terracotta)', tint:'var(--terracotta-tint)',
+      desc:`EMIs consume ${(emiRatio*100).toFixed(0)}% of income and total outflow is ${(outflowRatio*100).toFixed(0)}%. Little to no savings buffer — avoid new debt and look at trimming fixed costs.`};
+  }
+  return {level:'restructure', label:'Need to Restructure', color:'var(--brick)', tint:'var(--brick-tint)',
+    desc:`EMIs are ${(emiRatio*100).toFixed(0)}% of income and total monthly outflow is ${(outflowRatio*100).toFixed(0)}% — you're spending at or beyond what you earn. Consider consolidating loans, renegotiating tenure, or cutting fixed costs urgently.`};
+}
+ 
+function suggestedSalary(){
+  const emi = totalMonthlyEMI();
+  const exp = avgMonthlyExpenses();
+  if(emi + exp <= 0) return 0;
+  const byEmi = emi > 0 ? emi / 0.20 : 0;
+  const byOutflow = (emi + exp) / 0.70;
+  return Math.ceil(Math.max(byEmi, byOutflow) / 100) * 100;
+}
+ 
+function savingsTips(){
+  const tips = [];
+  const income = avgMonthlyIncome();
+  const exp = avgMonthlyExpenses();
+  const emi = totalMonthlyEMI();
+  const savings = income - exp - emi;
+ 
+  if(state.expenses.length){
+    const byCat = {};
+    state.expenses.forEach(e=>{ byCat[e.category] = (byCat[e.category]||0) + Number(e.amount||0); });
+    const top = Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
+    if(top) tips.push(`Your biggest spending category is <b>${top[0]}</b> at ${money(top[1])} logged so far — even a 10% cut here adds up fast.`);
+  }
+  if(income > 0){
+    const rate = (savings/income)*100;
+    if(rate < 20) tips.push(`You're saving roughly ${rate.toFixed(0)}% of income. Aim for at least 20% — automate a transfer to savings right after you're paid.`);
+    else tips.push(`You're saving roughly ${rate.toFixed(0)}% of income — ahead of the common 20% target. Consider directing the surplus toward an emergency fund or investments.`);
+  }
+  if(emi > 0 && income > 0 && emi/income > 0.35){
+    tips.push(`EMIs are a large share of income. Explore refinancing, prepaying the highest-interest loan first, or consolidating multiple EMIs.`);
+  }
+  tips.push(`Use the 50/30/20 rule as a guide: 50% needs, 30% wants, 20% savings &amp; debt repayment beyond EMIs.`);
+  tips.push(`Review the Daybook weekly — small recurring purchases (subscriptions, delivery fees) are the easiest silent leaks to plug.`);
+  return tips;
+}
+ 
+/* ============================================================
+   DASHBOARD PAGE
+============================================================ */
+function renderDashboard(){
+  try {
+    console.log('[Dashboard] Starting render...');
+    console.log('[Dashboard] State:', {
+      incomeCount: state.incomes.length,
+      expenseCount: state.expenses.length,
+      loanCount: state.loans.length,
+      bankCount: state.banks.length
+    });
+    
+    const inc = totalIncome();
+    const exp = totalExpenses();
+    const bal = inc - exp;
+    const emi = totalMonthlyEMI();
+    const health = financialHealth();
+    const suggSalary = suggestedSalary();
+    const tips = savingsTips();
+    const availableMonths = getAvailableMonths();
+    const currentMonth = new Date().toISOString().slice(0,7);
+   
+    const accounts = [{id:'cash', bankName:'Cash', last4:null}].concat(state.banks);
+    
+    console.log('[Dashboard] Data calculated successfully');
+ 
+  const html = `
+    <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;margin-bottom:24px;">
+      <div class="health-banner" style="background:${health.tint}; border-color:${health.color}22;">
+        <div class="health-seal" style="color:${health.color};">${health.label}</div>
+        <div>
+          <div class="health-title" style="color:${health.color};">Financial Health: ${health.label}</div>
+          <div class="health-desc">${health.desc}</div>
+        </div>
+      </div>
+      ${renderBudgetAlerts(currentMonth)}
+    </div>
+ 
+    <div class="section-title"><span class="idx">01</span>Monthly Report</div>
+    <div class="card" style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:18px;">
+        <div>
+          <div style="font-weight:600;font-size:15px;margin-bottom:3px;">Select Month to View Report</div>
+          <div style="font-size:12.5px;color:var(--ink-soft);">See your income, expenses, and savings for any month.</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <select id="monthSelector" onchange="updateMonthlyReport()" style="padding:10px 14px;border:1px solid var(--line-strong);border-radius:8px;font-size:14px;background:var(--surface);color:var(--ink);cursor:pointer;min-width:200px;">
+            <option value="">All Time</option>
+            ${availableMonths.length ? availableMonths.map(m=>`<option value="${m}" ${m===currentMonth?'selected':''}>${formatMonthLabel(m)}</option>`).join('') : ''}
+          </select>
+        </div>
+      </div>
+      <div id="monthlyReportContent">
+        ${availableMonths.length ? renderMonthlyReportContent(currentMonth) : '<div style="text-align:center;padding:20px;color:var(--ink-soft);">No data available. Start by adding income or expenses.</div>'}
+      </div>
+    </div>
+
+    <div class="section-title"><span class="idx">02</span>Overview</div>
+    <div class="grid grid-4">
+      <div class="card card-stat"><div class="k">Total Income</div><div class="v pos">${money(inc)}</div><div class="d">${state.incomes.length} entries logged</div></div>
+      <div class="card card-stat"><div class="k">Total Expenses</div><div class="v neg">${money(exp)}</div><div class="d">${state.expenses.length} daybook entries</div></div>
+      <div class="card card-stat"><div class="k">Monthly EMI Outgo</div><div class="v" style="color:var(--brass);">${money(emi)}</div><div class="d">${state.loans.length} active loan(s)</div></div>
+      <div class="card card-stat"><div class="k">Real-Time Balance</div><div class="v ${bal>=0?'pos':'neg'}">${money(bal)}</div><div class="d">Income minus expenses, live</div></div>
+    </div>
+ 
+    <div class="section-title"><span class="idx">03</span>Accounts</div>
+    <div class="grid grid-3">
+      ${accounts.map(a=>{
+        const b = accountBalance(a.id);
+        return `<div class="acct-card">
+          <div class="name">${a.bankName}${a.last4?` <span style="color:var(--ink-soft);font-weight:500;">(••${a.last4})</span>`:''}</div>
+          <div class="type">${a.id==='cash' ? 'Cash on hand' : 'Bank account'}</div>
+          <div class="acct-row"><span>Credited</span><b style="color:var(--emerald-dark);">${money(b.credit)}</b></div>
+          <div class="acct-row"><span>Debited</span><b style="color:var(--brick);">${money(b.debit)}</b></div>
+          <div class="acct-bal"><span class="lbl">Balance</span><span class="amt" style="color:${b.balance>=0?'var(--emerald-dark)':'var(--brick)'};">${money(b.balance)}</span></div>
+        </div>`;
+      }).join('')}
+    </div>
+ 
+    <div class="section-title"><span class="idx">04</span>Expense Breakdown</div>
+    <div class="card" style="margin-bottom:24px;">
+      ${renderExpenseChart()}
+    </div>
+
+    <div class="section-title"><span class="idx">05</span>Budget Overview</div>
+    ${renderBudgetOverview(currentMonth)}
+
+    <div class="section-title"><span class="idx">06</span>50/30/20 Rule Analysis</div>
+    ${render503020Dashboard(currentMonth)}
+
+    <div class="grid grid-2" style="margin-top:32px;align-items:start;">
+      <div>
+        <div class="section-title" style="margin-top:0;"><span class="idx">07</span>How To Save More</div>
+        <ul class="tip-list">
+          ${tips.map((t,i)=>`<li><span class="n">${String(i+1).padStart(2,'0')}</span><span>${t}</span></li>`).join('')}
+        </ul>
+      </div>
+      <div>
+        <div class="section-title" style="margin-top:0;"><span class="idx">08</span>Suggested Salary</div>
+        <div class="card">
+          <div class="k" style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);font-weight:600;margin-bottom:8px;">To reach a "Healthy" status</div>
+          <div class="v font-display" style="font-size:30px;font-weight:600;">${suggSalary>0 ? money(suggSalary)+' /mo' : '—'}</div>
+          <div class="d" style="font-size:12.5px;color:var(--ink-soft);margin-top:10px;line-height:1.6;">
+            ${suggSalary>0
+              ? `Based on your average monthly expenses (${money(avgMonthlyExpenses())}) and EMI outgo (${money(emi)}), keeping EMIs under 20% and total outflow under 70% of income needs at least this much coming in each month.`
+              : `Log some expenses and EMIs first — we'll calculate the salary you'd need to stay financially healthy.`}
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+    <div class="section-title"><span class="idx">09</span>Export</div>
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+      <div>
+        <div style="font-weight:600;font-size:14.5px;margin-bottom:3px;">Export Ledger</div>
+        <div style="font-size:12.5px;color:var(--ink-soft);">Download a combined income + expense ledger for a specific account and month as a CSV file.</div>
+      </div>
+      <button class="btn btn-primary" onclick="openExportLedger()">Export Ledger</button>
+    </div>
+  `;
+  
+  console.log('[Dashboard] HTML generated, length:', html.length);
+  document.getElementById('pageContent').innerHTML = html;
+  console.log('[Dashboard] Rendered successfully');
+  } catch(error) {
+    console.error('[Dashboard] Render error:', error);
+    document.getElementById('pageContent').innerHTML = `
+      <div class="card" style="padding:40px;text-align:center;">
+        <div style="font-size:18px;font-weight:600;margin-bottom:12px;color:var(--brick);">Dashboard Error</div>
+        <div style="font-size:14px;color:var(--ink-soft);margin-bottom:20px;">There was an error loading the dashboard. Please try refreshing the page.</div>
+        <div style="font-size:12px;color:var(--ink-soft);font-family:monospace;background:var(--paper);padding:12px;border-radius:6px;">${error.message}</div>
+      </div>
+    `;
+  }
+}
+
+function renderMonthlyReportContent(month){
+  if(!month){
+    // All time view
+    const inc = totalIncome();
+    const exp = totalExpenses();
+    const sav = inc - exp;
+    return `
+      <div class="grid grid-3">
+        <div style="text-align:center;padding:20px;background:var(--emerald-tint);border-radius:10px;">
+          <div style="font-size:12px;color:var(--emerald-dark);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Total Income</div>
+          <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:var(--emerald-dark);">${money(inc)}</div>
+          <div style="font-size:11px;color:var(--emerald-dark);margin-top:4px;">${state.incomes.length} transactions</div>
+        </div>
+        <div style="text-align:center;padding:20px;background:var(--brick-tint);border-radius:10px;">
+          <div style="font-size:12px;color:var(--brick);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Total Expenses</div>
+          <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:var(--brick);">${money(exp)}</div>
+          <div style="font-size:11px;color:var(--brick);margin-top:4px;">${state.expenses.length} transactions</div>
+        </div>
+        <div style="text-align:center;padding:20px;background:var(--brass-tint);border-radius:10px;">
+          <div style="font-size:12px;color:#7A5A24;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Net Savings</div>
+          <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:#7A5A24;">${money(sav)}</div>
+          <div style="font-size:11px;color:#7A5A24;margin-top:4px;">${sav>=0?'Surplus':'Deficit'}</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  const inc = monthlyIncome(month);
+  const exp = monthlyExpenses(month);
+  const sav = monthlySavings(month);
+  const incomeCount = state.incomes.filter(i=>monthKey(i.date)===month).length;
+  const expenseCount = state.expenses.filter(e=>monthKey(e.date)===month).length;
+  const savingsRate = inc > 0 ? ((sav / inc) * 100).toFixed(1) : 0;
+  
+  return `
+    <div class="grid grid-3">
+      <div style="text-align:center;padding:20px;background:var(--emerald-tint);border-radius:10px;">
+        <div style="font-size:12px;color:var(--emerald-dark);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Income</div>
+        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:var(--emerald-dark);">${money(inc)}</div>
+        <div style="font-size:11px;color:var(--emerald-dark);margin-top:4px;">${incomeCount} transaction${incomeCount!==1?'s':''}</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:var(--brick-tint);border-radius:10px;">
+        <div style="font-size:12px;color:var(--brick);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Expenses</div>
+        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:var(--brick);">${money(exp)}</div>
+        <div style="font-size:11px;color:var(--brick);margin-top:4px;">${expenseCount} transaction${expenseCount!==1?'s':''}</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:var(--brass-tint);border-radius:10px;">
+        <div style="font-size:12px;color:#7A5A24;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Savings</div>
+        <div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:#7A5A24;">${money(sav)}</div>
+        <div style="font-size:11px;color:#7A5A24;margin-top:4px;">${savingsRate}% savings rate</div>
+      </div>
+    </div>
+    ${sav < 0 ? `<div style="margin-top:14px;padding:12px 16px;background:var(--brick-tint);color:var(--brick);border-radius:8px;font-size:13px;line-height:1.5;">⚠️ You spent more than you earned this month. Review your expenses and consider cutting discretionary spending.</div>` : ''}
+    ${sav > 0 && savingsRate >= 20 ? `<div style="margin-top:14px;padding:12px 16px;background:var(--emerald-tint);color:var(--emerald-dark);border-radius:8px;font-size:13px;line-height:1.5;">✓ Great job! You're saving ${savingsRate}% of your income — well above the recommended 20% threshold.</div>` : ''}
+  `;
+}
+
+function updateMonthlyReport(){
+  const month = document.getElementById('monthSelector').value;
+  document.getElementById('monthlyReportContent').innerHTML = renderMonthlyReportContent(month);
+}
+
+function renderBudgetAlerts(month){
+  const budgetsForMonth = state.budgets.filter(b=>b.month===month);
+  
+  if(budgetsForMonth.length === 0){
+    return `
+      <div class="card" style="background:var(--paper);border:1px dashed var(--line-strong);">
+        <div style="text-align:center;padding:20px;">
+          <div style="font-size:13px;color:var(--ink-soft);margin-bottom:8px;">No Budget Alerts</div>
+          <div style="font-size:12px;color:var(--ink-soft);">Set budgets in the <b>Budget Allocation</b> tab to track spending limits.</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  const alerts = [];
+  budgetsForMonth.forEach(budget=>{
+    const status = getBudgetStatus(budget.category, month);
+    const remainingPercent = status.budget > 0 ? ((status.remaining / status.budget) * 100) : 100;
+    
+    if(remainingPercent < 30 && remainingPercent >= 0){
+      alerts.push({
+        category: budget.category,
+        ...status,
+        remainingPercent: remainingPercent.toFixed(1)
+      });
+    } else if(status.remaining < 0){
+      alerts.push({
+        category: budget.category,
+        ...status,
+        remainingPercent: 0,
+        exceeded: true
+      });
+    }
+  });
+  
+  if(alerts.length === 0){
+    return `
+      <div class="card" style="background:var(--emerald-tint);border:1px solid var(--emerald-dark);">
+        <div style="padding:20px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:8px;">✓</div>
+          <div style="font-size:14px;font-weight:600;color:var(--emerald-dark);margin-bottom:4px;">All Budgets on Track</div>
+          <div style="font-size:12px;color:var(--emerald-dark);">No budget alerts for this month</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  return `
+    <div class="card" style="background:var(--brick-tint);border:1px solid var(--brick);">
+      <div style="padding:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <span style="font-size:22px;">⚠️</span>
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--brick);">Budget Alerts</div>
+            <div style="font-size:11px;color:var(--brick);">${alerts.length} categor${alerts.length===1?'y':'ies'} need attention</div>
+          </div>
+        </div>
+        <div style="max-height:180px;overflow-y:auto;">
+          ${alerts.map(alert=>{
+            const color = CATEGORY_COLORS[alert.category] || CATEGORY_COLORS['Other'];
+            return `
+              <div style="padding:10px;background:var(--surface);border-radius:6px;margin-bottom:8px;border-left:3px solid ${color};">
+                <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px;">
+                  <div style="font-size:12.5px;font-weight:600;color:var(--ink);">${alert.category}</div>
+                  <span style="font-size:10px;padding:3px 8px;border-radius:10px;background:var(--brick);color:#fff;font-weight:600;">
+                    ${alert.exceeded ? 'EXCEEDED' : 'LOW'}
+                  </span>
+                </div>
+                <div style="font-size:11px;color:var(--ink-soft);">
+                  ${alert.exceeded 
+                    ? `Over by <b style="color:var(--brick);">${money(Math.abs(alert.remaining))}</b>` 
+                    : `Only <b style="color:var(--brick);">${money(alert.remaining)}</b> left (${alert.remainingPercent}%)`
+                  }
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderBudgetOverview(month){
+  const budgetsForMonth = state.budgets.filter(b=>b.month===month);
+  
+  if(budgetsForMonth.length === 0){
+    return `
+      <div class="card" style="margin-bottom:24px;">
+        <div style="text-align:center;padding:32px 20px;">
+          <div style="font-size:15px;font-weight:600;margin-bottom:6px;color:var(--ink);">No Budgets Set for ${formatMonthLabel(month)}</div>
+          <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;">Start managing your spending by setting category budgets.</div>
+          <button class="btn btn-primary" onclick="navigate('budgets')">Set Up Budgets</button>
+        </div>
+      </div>
+    `;
+  }
+  
+  let totalBudget = 0;
+  let totalSpent = 0;
+  const categoryDetails = [];
+  
+  budgetsForMonth.forEach(budget=>{
+    const status = getBudgetStatus(budget.category, month);
+    totalBudget += status.budget;
+    totalSpent += status.spent;
+    categoryDetails.push({
+      category: budget.category,
+      ...status
+    });
+  });
+  
+  const totalRemaining = totalBudget - totalSpent;
+  const overallPercentage = totalBudget > 0 ? (totalSpent / totalBudget * 100).toFixed(1) : 0;
+  
+  // Sort by most spent first
+  categoryDetails.sort((a,b)=>b.spent - a.spent);
+  
+  return `
+    <div class="card" style="margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+        <div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:3px;">Budget Tracking for ${formatMonthLabel(month)}</div>
+          <div style="font-size:12.5px;color:var(--ink-soft);">${budgetsForMonth.length} categor${budgetsForMonth.length===1?'y':'ies'} with active budgets</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="navigate('budgets')">Manage Budgets</button>
+      </div>
+      
+      <div class="grid grid-3" style="margin-bottom:20px;">
+        <div style="text-align:center;padding:18px;background:var(--brass-tint);border-radius:10px;">
+          <div style="font-size:11px;color:#7A5A24;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Total Budget</div>
+          <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:600;color:#7A5A24;">${money(totalBudget)}</div>
+        </div>
+        <div style="text-align:center;padding:18px;background:var(--brick-tint);border-radius:10px;">
+          <div style="font-size:11px;color:var(--brick);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Total Spent</div>
+          <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:600;color:var(--brick);">${money(totalSpent)}</div>
+          <div style="font-size:10px;color:var(--brick);margin-top:3px;">${overallPercentage}% used</div>
+        </div>
+        <div style="text-align:center;padding:18px;background:${totalRemaining >= 0 ? 'var(--emerald-tint)' : 'var(--brick-tint)'};border-radius:10px;">
+          <div style="font-size:11px;color:${totalRemaining >= 0 ? 'var(--emerald-dark)' : 'var(--brick)'};font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Remaining</div>
+          <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:600;color:${totalRemaining >= 0 ? 'var(--emerald-dark)' : 'var(--brick)'};">${money(totalRemaining)}</div>
+        </div>
+      </div>
+      
+      <div style="margin-top:20px;">
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px;font-weight:600;">Category Breakdown</div>
+        <div style="display:grid;gap:10px;">
+          ${categoryDetails.map(item=>{
+            const color = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['Other'];
+            let statusColor = 'var(--emerald-dark)';
+            if(item.percentage >= 100) statusColor = 'var(--brick)';
+            else if(item.percentage >= 80) statusColor = 'var(--amber)';
+            
+            return `
+              <div style="padding:12px 14px;background:var(--paper);border-radius:8px;border-left:3px solid ${color};">
+                <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+                  <div style="flex:1;">
+                    <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${item.category}</div>
+                    <div style="font-size:11px;color:var(--ink-soft);">
+                      ${money(item.spent)} of ${money(item.budget)}
+                      <span style="color:${statusColor};font-weight:600;margin-left:6px;">${item.percentage}%</span>
+                    </div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-size:11px;color:var(--ink-soft);">Remaining</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:${item.remaining >= 0 ? 'var(--emerald-dark)' : 'var(--brick)'};">${money(item.remaining)}</div>
+                  </div>
+                </div>
+                <div style="height:6px;background:var(--line);border-radius:3px;overflow:hidden;">
+                  <div style="height:100%;background:${statusColor};width:${Math.min(item.percentage, 100)}%;transition:width .3s ease;"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function render503020Dashboard(month){
+  const breakdown = get503020Breakdown(month);
+  
+  if(breakdown.total === 0){
+    return `
+      <div class="card" style="margin-bottom:24px;">
+        <div style="text-align:center;padding:32px 20px;">
+          <div style="font-size:15px;font-weight:600;margin-bottom:6px;color:var(--ink);">No Expense Data for 50/30/20 Analysis</div>
+          <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;">Start logging expenses in the Daybook to see your spending breakdown.</div>
+          <button class="btn btn-primary" onclick="navigate('daybook')">Add Expenses</button>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Create pie chart segments using conic-gradient
+  const needsColor = '#1F6F5C'; // emerald-dark
+  const wantsColor = '#B8863B'; // brass  
+  const savingsColor = '#B98A2E'; // amber
+  
+  let gradientStops = [];
+  let currentPercent = 0;
+  
+  if(breakdown.needs > 0){
+    gradientStops.push(`${needsColor} ${currentPercent}% ${currentPercent + parseFloat(breakdown.needsPercent)}%`);
+    currentPercent += parseFloat(breakdown.needsPercent);
+  }
+  if(breakdown.wants > 0){
+    gradientStops.push(`${wantsColor} ${currentPercent}% ${currentPercent + parseFloat(breakdown.wantsPercent)}%`);
+    currentPercent += parseFloat(breakdown.wantsPercent);
+  }
+  if(breakdown.savings > 0){
+    gradientStops.push(`${savingsColor} ${currentPercent}% ${currentPercent + parseFloat(breakdown.savingsPercent)}%`);
+  }
+  
+  const conicGradient = `conic-gradient(${gradientStops.join(', ')})`;
+  
+  return `
+    <div class="card" style="margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+        <div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:3px;">50/30/20 Rule Analysis for ${formatMonthLabel(month)}</div>
+          <div style="font-size:12.5px;color:var(--ink-soft);">Recommended: 50% Needs, 30% Wants, 20% Savings</div>
+        </div>
+      </div>
+      
+      <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap;">
+        <div style="flex:0 0 200px;">
+          <div style="width:200px;height:200px;border-radius:50%;background:${conicGradient};display:flex;align-items:center;justify-content:center;position:relative;">
+            <div style="width:120px;height:120px;background:var(--surface);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+              <div style="font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Total</div>
+              <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:var(--ink);margin-top:4px;">${money(breakdown.total)}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="flex:1;min-width:280px;">
+          <div style="display:grid;gap:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--emerald-tint);border-radius:8px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:16px;height:16px;background:${needsColor};border-radius:3px;"></div>
+                <div>
+                  <div style="font-weight:600;font-size:14px;color:var(--emerald-dark);">Needs</div>
+                  <div style="font-size:11px;color:var(--emerald-dark);">Housing, Food, Bills, Insurance</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px;color:var(--emerald-dark);">${money(breakdown.needs)}</div>
+                <div style="font-size:12px;color:var(--emerald-dark);font-weight:600;">${breakdown.needsPercent}% <span style="color:var(--ink-soft);">(Target: 50%)</span></div>
+              </div>
+            </div>
+            
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--brass-tint);border-radius:8px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:16px;height:16px;background:${wantsColor};border-radius:3px;"></div>
+                <div>
+                  <div style="font-weight:600;font-size:14px;color:#7A5A24;">Wants</div>
+                  <div style="font-size:11px;color:#7A5A24;">Shopping, Entertainment, Travel</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px;color:#7A5A24;">${money(breakdown.wants)}</div>
+                <div style="font-size:12px;color:#7A5A24;font-weight:600;">${breakdown.wantsPercent}% <span style="color:var(--ink-soft);">(Target: 30%)</span></div>
+              </div>
+            </div>
+            
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--amber-tint);border-radius:8px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:16px;height:16px;background:${savingsColor};border-radius:3px;"></div>
+                <div>
+                  <div style="font-weight:600;font-size:14px;color:#8A6A1E;">Savings</div>
+                  <div style="font-size:11px;color:#8A6A1E;">Education, Investments</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px;color:#8A6A1E;">${money(breakdown.savings)}</div>
+                <div style="font-size:12px;color:#8A6A1E;font-weight:600;">${breakdown.savingsPercent}% <span style="color:var(--ink-soft);">(Target: 20%)</span></div>
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin-top:16px;padding:12px;background:var(--paper);border-radius:8px;">
+            <div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px;">💡 Analysis</div>
+            <div style="font-size:12px;color:var(--ink-soft);line-height:1.5;">
+              ${parseFloat(breakdown.needsPercent) > 50 ? 
+                `🔴 Needs are ${breakdown.needsPercent}% (over 50% target). Consider reducing fixed costs.` : 
+                parseFloat(breakdown.needsPercent) < 45 ? 
+                  `🟢 Excellent needs control at ${breakdown.needsPercent}%. You have flexibility for wants and savings.` :
+                  `🟢 Needs are well-controlled at ${breakdown.needsPercent}%.`
+              }
+              ${parseFloat(breakdown.wantsPercent) > 30 ? 
+                ` 🔴 Wants spending is high at ${breakdown.wantsPercent}% (over 30% target).` : 
+                ` 🟢 Wants spending looks good at ${breakdown.wantsPercent}%.`
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderExpenseChart(){
+  const expenseBreakdown = getExpensesByCategory();
+  
+  if(expenseBreakdown.length === 0){
+    return `
+      <div style="text-align:center;padding:40px 20px;color:var(--ink-soft);">
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px;">No Expenses Logged Yet</div>
+        <div style="font-size:13px;">Start tracking your spending in the Daybook to see a visual breakdown by category.</div>
+      </div>
+    `;
+  }
+  
+  const totalExpense = expenseBreakdown.reduce((s,c)=>s+c.amount, 0);
+  
+  // Create donut chart segments using conic-gradient
+  let gradientStops = [];
+  let currentPercent = 0;
+  
+  expenseBreakdown.forEach(item=>{
+    const color = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['Other'];
+    const percent = parseFloat(item.percentage);
+    gradientStops.push(`${color} ${currentPercent}% ${currentPercent + percent}%`);
+    currentPercent += percent;
+  });
+  
+  const conicGradient = `conic-gradient(${gradientStops.join(', ')})`;
+  
+  return `
+    <div class="expense-chart-container">
+      <div class="chart-visual">
+        <div class="donut-chart" style="background:${conicGradient};">
+          <div class="donut-center">
+            <div class="label">Total Spent</div>
+            <div class="value">${money(totalExpense)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <div style="margin-bottom:14px;">
+          <div style="font-size:13px;color:var(--ink-soft);margin-bottom:8px;">Spending by Category</div>
+          <div style="font-size:11px;color:var(--ink-soft);">Top ${Math.min(expenseBreakdown.length, 5)} categories shown</div>
+        </div>
+        ${expenseBreakdown.slice(0, 5).map(item=>{
+          const color = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['Other'];
+          return `
+            <div class="legend-item">
+              <div class="legend-left">
+                <div class="legend-color" style="background:${color};"></div>
+                <div style="flex:1;">
+                  <div class="legend-label">${item.category}</div>
+                  <div class="legend-bar">
+                    <div class="legend-bar-fill" style="width:${item.percentage}%;background:${color};"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="legend-right">
+                <div class="legend-amount">${money(item.amount)}</div>
+                <div class="legend-percent">${item.percentage}%</div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+        ${expenseBreakdown.length > 5 ? `
+          <div style="margin-top:12px;padding:10px;background:var(--paper);border-radius:6px;text-align:center;font-size:12px;color:var(--ink-soft);">
+            + ${expenseBreakdown.length - 5} more categor${expenseBreakdown.length - 5 === 1 ? 'y' : 'ies'}
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+ 
+/* ============================================================
+   EXPORT LEDGER MODAL
+============================================================ */
+function openExportLedger(){
+  const accounts = [{id:'all', label:'All Accounts'},{id:'cash', label:'Cash'}].concat(state.banks.map(b=>({id:b.id, label:b.bankName+' (••'+b.last4+')'})));
+  const now = new Date();
+  const defMonth = now.toISOString().slice(0,7);
+  openModal(`
+    <h3>Export Ledger</h3>
+    <div class="msub">Choose an account and month to export as CSV.</div>
+    <div class="field">
+      <label>Account</label>
+      <select id="ex_account">${accounts.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}</select>
+    </div>
+    <div class="field">
+      <label>Month</label>
+      <input type="month" id="ex_month" value="${defMonth}">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="runExportLedger()">Download CSV</button>
+    </div>
+  `);
+}
+function runExportLedger(){
+  const acct = document.getElementById('ex_account').value;
+  const month = document.getElementById('ex_month').value;
+  if(!month){ showToast('Pick a month first'); return; }
+ 
+  let rows = [];
+  state.incomes.forEach(i=>{
+    if(monthKey(i.date) !== month) return;
+    if(acct !== 'all' && i.accountId !== acct) return;
+    rows.push({date:i.date, type:'Credit', category:i.category, description:i.source, account:modeLabel(i.accountId), amount:Number(i.amount||0)});
+  });
+  state.expenses.forEach(e=>{
+    if(monthKey(e.date) !== month) return;
+    if(acct !== 'all' && e.paymentMode !== acct) return;
+    rows.push({date:e.date, type:'Debit', category:e.category, description:e.description, account:modeLabel(e.paymentMode), amount:-Number(e.amount||0)});
+  });
+  rows.sort((a,b)=> a.date.localeCompare(b.date));
+ 
+  if(!rows.length){ showToast('No entries found for that account/month'); return; }
+ 
+  let running = 0;
+  const csvRows = [['Date','Type','Category','Description','Account','Amount','Running Balance']];
+  rows.forEach(r=>{
+    running += r.amount;
+    csvRows.push([r.date, r.type, r.category, (r.description||'').replace(/,/g,';'), r.account, r.amount.toFixed(2), running.toFixed(2)]);
+  });
+  const csvContent = csvRows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ledger_${acct}_${month}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  closeModal();
+  showToast('Ledger exported');
+}
+ 
+/* ============================================================
+   INCOME PAGE
+============================================================ */
+function renderIncome(){
+  const modes = paymentModes();
+  const rows = [...state.incomes].sort((a,b)=> b.date.localeCompare(a.date));
+  const html = `
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="field"><label>Date</label><input type="date" id="in_date" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="field"><label>Category</label>
+          <select id="in_category">${INCOME_CATEGORIES.map(c=>`<option>${c}</option>`).join('')}</select>
+        </div>
+        <div class="field full" style="grid-column:span 2;"><label>Source / Description</label><input type="text" id="in_source" placeholder="e.g. July salary, freelance project"></div>
+        <div class="field"><label>Amount</label><input type="number" id="in_amount" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>Received In</label>
+          <select id="in_account">${modes.map(m=>`<option value="${m.id}">${m.label}</option>`).join('')}</select>
+        </div>
+        <div class="field full" style="grid-column:1/-1;"><button class="btn btn-primary" onclick="addIncome()">Add Income</button></div>
+      </div>
+      ${state.banks.length===0 ? '<div class="hint-banner" style="margin-top:14px;margin-bottom:0;">You haven\'t added a bank account yet. Add one from the profile menu to track income by account — "Cash" works fine until then.</div>' : ''}
+    </div>
+ 
+    <div class="table-wrap">
+      ${rows.length===0 ? `
+        <div class="empty-state">
+          <div class="em-title">No income logged yet</div>
+          <div class="em-sub">Add your first entry above — salary, freelance, or anything else coming in.</div>
+        </div>` : `
+        <table>
+          <thead><tr><th>Date</th><th>Category</th><th>Source / Description</th><th>Account</th><th style="text-align:right;">Amount</th><th></th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td>${fmtDate(r.date)}</td>
+                <td><span class="tag">${r.category}</span></td>
+                <td>${r.source||'—'}</td>
+                <td>${modeLabel(r.accountId)}</td>
+                <td class="amt credit">+${money(r.amount)}</td>
+                <td><div class="row-actions"><button class="icon-btn" onclick="editIncome('${r.id}')">Edit</button><button class="icon-btn" onclick="deleteIncome('${r.id}')">Delete</button></div></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+  document.getElementById('pageContent').innerHTML = html;
+}
+async function addIncome(){
+  const date = document.getElementById('in_date').value;
+  const category = document.getElementById('in_category').value;
+  const source = document.getElementById('in_source').value.trim();
+  const amount = parseFloat(document.getElementById('in_amount').value);
+  const accountId = document.getElementById('in_account').value;
+  if(!date || !amount || amount<=0){ showToast('Enter a date and a valid amount'); return; }
+  state.incomes.push({id:uid(), date, category, source, amount, accountId});
+  await persistAll();
+  showToast('Income added');
+  renderIncome();
+}
+function editIncome(id){
+  const income = state.incomes.find(i=>i.id===id);
+  if(!income) return;
+  
+  const modes = paymentModes();
+  openModal(`
+    <h3>Edit Income</h3>
+    <div class="msub">Update the income entry details.</div>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="edit_in_date" value="${income.date}">
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select id="edit_in_category">
+        ${INCOME_CATEGORIES.map(c=>`<option ${c===income.category?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field">
+      <label>Source / Description</label>
+      <input type="text" id="edit_in_source" value="${income.source||''}">
+    </div>
+    <div class="field">
+      <label>Amount</label>
+      <input type="number" id="edit_in_amount" min="0" step="0.01" value="${income.amount}">
+    </div>
+    <div class="field">
+      <label>Received In</label>
+      <select id="edit_in_account">
+        ${modes.map(m=>`<option value="${m.id}" ${m.id===income.accountId?'selected':''}>${m.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateIncome('${id}')">Update Income</button>
+    </div>
+  `, true);
+}
+async function updateIncome(id){
+  const date = document.getElementById('edit_in_date').value;
+  const category = document.getElementById('edit_in_category').value;
+  const source = document.getElementById('edit_in_source').value.trim();
+  const amount = parseFloat(document.getElementById('edit_in_amount').value);
+  const accountId = document.getElementById('edit_in_account').value;
+  
+  if(!date || !amount || amount<=0){ showToast('Enter a valid date and amount'); return; }
+  
+  const income = state.incomes.find(i=>i.id===id);
+  if(income){
+    income.date = date;
+    income.category = category;
+    income.source = source;
+    income.amount = amount;
+    income.accountId = accountId;
+    await persistAll();
+    closeModal();
+    showToast('Income updated');
+    renderIncome();
+  }
+}
+async function deleteIncome(id){
+  state.incomes = state.incomes.filter(i=>i.id!==id);
+  await persistAll();
+  renderIncome();
+}
+ 
+/* ============================================================
+   DAYBOOK PAGE
+============================================================ */
+function renderDaybookMiniChart(){
+  const categoryBreakdown = getExpenseCategoryBreakdown();
+  
+  if(categoryBreakdown.length === 0){
+    return '';
+  }
+  
+  const totalExpense = categoryBreakdown.reduce((s,c)=>s+c.amount, 0);
+  
+  // Create pie chart segments using conic-gradient
+  let gradientStops = [];
+  let currentPercent = 0;
+  
+  categoryBreakdown.forEach(item=>{
+    const color = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['Other'];
+    const percent = parseFloat(item.percentage);
+    gradientStops.push(`${color} ${currentPercent}% ${currentPercent + percent}%`);
+    currentPercent += percent;
+  });
+  
+  const conicGradient = `conic-gradient(${gradientStops.join(', ')})`;
+  
+  return `
+    <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
+      <div style="flex:0 0 160px;">
+        <div style="width:160px;height:160px;border-radius:50%;background:${conicGradient};display:flex;align-items:center;justify-content:center;position:relative;">
+          <div style="width:100px;height:100px;background:var(--surface);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            <div style="font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Total</div>
+            <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--ink);margin-top:2px;">${money(totalExpense)}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="flex:1;min-width:240px;">
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;font-weight:600;">Spending by Category</div>
+        <div style="display:grid;gap:8px;">
+          ${categoryBreakdown.slice(0, 5).map(item=>{
+            const color = CATEGORY_COLORS[item.category] || CATEGORY_COLORS['Other'];
+            return `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--paper);border-radius:6px;border-left:3px solid ${color};">
+                <div style="font-size:12px;font-weight:500;">${item.category}</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;">${money(item.amount)}</span>
+                  <span style="font-size:10px;color:var(--ink-soft);font-weight:600;">${item.percentage}%</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+          ${categoryBreakdown.length > 5 ? `
+            <div style="padding:8px 10px;text-align:center;font-size:11px;color:var(--ink-soft);">
+              + ${categoryBreakdown.length - 5} more categor${categoryBreakdown.length - 5 === 1 ? 'y' : 'ies'}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderDaybook(){
+  const modes = paymentModes();
+  const rows = [...state.expenses].sort((a,b)=> b.date.localeCompare(a.date));
+  const categoryBreakdown = getExpenseCategoryBreakdown();
+  
+  const html = `
+    ${categoryBreakdown.length > 0 ? `
+    <div class="card" style="margin-bottom:20px;">
+      <div style="font-size:15px;font-weight:600;margin-bottom:16px;">📊 Expense Analytics</div>
+      ${renderDaybookMiniChart()}
+    </div>
+    ` : ''}
+    
+    <div class="hint-banner">Every entry here automatically flows into your expense ledger and updates account balances on the Dashboard.</div>
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="field"><label>Date</label><input type="date" id="db_date" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="field"><label>Expense Category</label>
+          <select id="db_category">${EXPENSE_CATEGORIES.map(c=>`<option>${c}</option>`).join('')}</select>
+        </div>
+        <div class="field full" style="grid-column:span 2;"><label>Description</label><input type="text" id="db_description" placeholder="e.g. Grocery run, Uber to office"></div>
+        <div class="field"><label>Amount</label><input type="number" id="db_amount" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>Payment Mode</label>
+          <select id="db_mode">${modes.map(m=>`<option value="${m.id}">${m.label}</option>`).join('')}</select>
+        </div>
+        <div class="field full" style="grid-column:1/-1;"><button class="btn btn-primary" onclick="addExpense()">Add to Daybook</button></div>
+      </div>
+    </div>
+ 
+    <div class="table-wrap">
+      ${rows.length===0 ? `
+        <div class="empty-state">
+          <div class="em-title">Your daybook is empty</div>
+          <div class="em-sub">Log today's spending above — it'll show up here and on your Dashboard instantly.</div>
+        </div>` : `
+        <table>
+          <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Payment Mode</th><th style="text-align:right;">Amount</th><th></th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td>${fmtDate(r.date)}</td>
+                <td><span class="tag" style="background:var(--terracotta-tint);color:var(--terracotta);">${r.category}</span></td>
+                <td>${r.description||'—'}</td>
+                <td>${modeLabel(r.paymentMode)}</td>
+                <td class="amt debit">-${money(r.amount)}</td>
+                <td><div class="row-actions"><button class="icon-btn" onclick="editExpense('${r.id}')">Edit</button><button class="icon-btn" onclick="deleteExpense('${r.id}')">Delete</button></div></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+  document.getElementById('pageContent').innerHTML = html;
+}
+async function addExpense(){
+  const date = document.getElementById('db_date').value;
+  const category = document.getElementById('db_category').value;
+  const description = document.getElementById('db_description').value.trim();
+  const amount = parseFloat(document.getElementById('db_amount').value);
+  const paymentMode = document.getElementById('db_mode').value;
+  if(!date || !amount || amount<=0){ showToast('Enter a date and a valid amount'); return; }
+  state.expenses.push({id:uid(), date, category, description, amount, paymentMode});
+  await persistAll();
+  showToast('Expense added to daybook');
+  renderDaybook();
+}
+function editExpense(id){
+  const expense = state.expenses.find(e=>e.id===id);
+  if(!expense) return;
+  
+  const modes = paymentModes();
+  openModal(`
+    <h3>Edit Expense</h3>
+    <div class="msub">Update the expense entry details.</div>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="edit_db_date" value="${expense.date}">
+    </div>
+    <div class="field">
+      <label>Expense Category</label>
+      <select id="edit_db_category">
+        ${EXPENSE_CATEGORIES.map(c=>`<option ${c===expense.category?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <input type="text" id="edit_db_description" value="${expense.description||''}">
+    </div>
+    <div class="field">
+      <label>Amount</label>
+      <input type="number" id="edit_db_amount" min="0" step="0.01" value="${expense.amount}">
+    </div>
+    <div class="field">
+      <label>Payment Mode</label>
+      <select id="edit_db_mode">
+        ${modes.map(m=>`<option value="${m.id}" ${m.id===expense.paymentMode?'selected':''}>${m.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateExpense('${id}')">Update Expense</button>
+    </div>
+  `, true);
+}
+async function updateExpense(id){
+  const date = document.getElementById('edit_db_date').value;
+  const category = document.getElementById('edit_db_category').value;
+  const description = document.getElementById('edit_db_description').value.trim();
+  const amount = parseFloat(document.getElementById('edit_db_amount').value);
+  const paymentMode = document.getElementById('edit_db_mode').value;
+  
+  if(!date || !amount || amount<=0){ showToast('Enter a valid date and amount'); return; }
+  
+  const expense = state.expenses.find(e=>e.id===id);
+  if(expense){
+    expense.date = date;
+    expense.category = category;
+    expense.description = description;
+    expense.amount = amount;
+    expense.paymentMode = paymentMode;
+    await persistAll();
+    closeModal();
+    showToast('Expense updated');
+    renderDaybook();
+  }
+}
+async function deleteExpense(id){
+  state.expenses = state.expenses.filter(e=>e.id!==id);
+  await persistAll();
+  renderDaybook();
+}
+ 
+/* ============================================================
+   LOANS & EMI PAGE
+============================================================ */
+function renderLoans(){
+  const rows = [...state.loans].sort((a,b)=> (b.startDate||'').localeCompare(a.startDate||''));
+  const emiTotal = totalMonthlyEMI();
+  const income = avgMonthlyIncome();
+  const ratio = income>0 ? (emiTotal/income*100) : null;
+  const html = `
+    <div class="grid grid-3" style="margin-bottom:24px;">
+      <div class="card card-stat"><div class="k">Total Monthly EMI</div><div class="v" style="color:var(--brass);">${money(emiTotal)}</div><div class="d">${state.loans.length} active loan(s)</div></div>
+      <div class="card card-stat"><div class="k">EMI-to-Income Ratio</div><div class="v">${ratio!==null ? ratio.toFixed(0)+'%' : '—'}</div><div class="d">Healthy is generally under 20%</div></div>
+      <div class="card card-stat"><div class="k">Total Principal Outstanding</div><div class="v">${money(state.loans.reduce((s,l)=>s+Number(l.principal||0),0))}</div><div class="d">Across all loans logged</div></div>
+    </div>
+ 
+    <div class="hint-banner">Adding a loan here tracks your EMI obligation and feeds your financial health score. If you actually pay an EMI, also log it in the Daybook under "EMI / Loan Payment" so your account balance reflects it.</div>
+ 
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="field"><label>Loan Name</label><input type="text" id="ln_name" placeholder="e.g. Car Loan, Home Loan"></div>
+        <div class="field"><label>Principal Amount</label><input type="number" id="ln_principal" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>Monthly EMI</label><input type="number" id="ln_emi" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>Tenure (months)</label><input type="number" id="ln_tenure" min="0" placeholder="0"></div>
+        <div class="field"><label>Interest Rate (%)</label><input type="number" id="ln_rate" min="0" step="0.01" placeholder="optional"></div>
+        <div class="field"><label>Start Date</label><input type="date" id="ln_start"></div>
+        <div class="field full" style="grid-column:1/-1;"><button class="btn btn-primary" onclick="addLoan()">Add Loan</button></div>
+      </div>
+    </div>
+ 
+    <div class="table-wrap">
+      ${rows.length===0 ? `
+        <div class="empty-state">
+          <div class="em-title">No loans added</div>
+          <div class="em-sub">Add a loan or EMI above to see how it affects your financial health.</div>
+        </div>` : `
+        <table>
+          <thead><tr><th>Loan</th><th>Principal</th><th>Monthly EMI</th><th>Tenure</th><th>Interest</th><th>Start Date</th><th></th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td><b>${r.name}</b></td>
+                <td class="amt">${money(r.principal)}</td>
+                <td class="amt debit">${money(r.emi)}</td>
+                <td>${r.tenureMonths || '—'} mo</td>
+                <td>${r.rate ? r.rate+'%' : '—'}</td>
+                <td>${r.startDate ? fmtDate(r.startDate) : '—'}</td>
+                <td><div class="row-actions"><button class="icon-btn" onclick="deleteLoan('${r.id}')">Delete</button></div></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+  document.getElementById('pageContent').innerHTML = html;
+}
+async function addLoan(){
+  const name = document.getElementById('ln_name').value.trim();
+  const principal = parseFloat(document.getElementById('ln_principal').value) || 0;
+  const emi = parseFloat(document.getElementById('ln_emi').value) || 0;
+  const tenureMonths = parseInt(document.getElementById('ln_tenure').value) || 0;
+  const rate = parseFloat(document.getElementById('ln_rate').value) || 0;
+  const startDate = document.getElementById('ln_start').value;
+  if(!name || emi<=0){ showToast('Enter a loan name and a valid EMI amount'); return; }
+  state.loans.push({id:uid(), name, principal, emi, tenureMonths, rate, startDate});
+  await persistAll();
+  showToast('Loan added');
+  renderLoans();
+}
+async function deleteLoan(id){
+  state.loans = state.loans.filter(l=>l.id!==id);
+  await persistAll();
+  renderLoans();
+}
+
+/* ============================================================
+   BUDGET ALLOCATION PAGE
+============================================================ */
+function renderBudgets(){
+  const currentMonth = new Date().toISOString().slice(0,7);
+  const selectedMonth = document.getElementById('budget_month')?.value || currentMonth;
+  
+  const html = `
+    <div class="hint-banner">
+      Set monthly spending limits for each category. When you add expenses in the Daybook, your budget automatically updates to show how much you've spent vs. your limit.
+    </div>
+
+    <div class="card" style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:20px;">
+        <div>
+          <div style="font-weight:600;font-size:15px;margin-bottom:3px;">Select Month</div>
+          <div style="font-size:12.5px;color:var(--ink-soft);">Set and track budgets for specific months</div>
+        </div>
+        <input type="month" id="budget_month" value="${selectedMonth}" onchange="renderBudgets()" style="padding:10px 14px;border:1px solid var(--line-strong);border-radius:8px;font-size:14px;background:var(--surface);color:var(--ink);cursor:pointer;min-width:180px;">
+      </div>
+      
+      <div style="margin-bottom:16px;padding:14px;background:var(--paper);border-radius:8px;">
+        <div style="font-size:13px;color:var(--ink-soft);margin-bottom:10px;">Quick Actions</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-sm btn-outline" onclick="setBudgetsForAllCategories('${selectedMonth}')">Set Budget for All Categories</button>
+          <button class="btn btn-sm btn-outline" onclick="copyBudgetsFromPreviousMonth('${selectedMonth}')">Copy from Previous Month</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      ${EXPENSE_CATEGORIES.map(category=>renderBudgetCard(category, selectedMonth)).join('')}
+    </div>
+  `;
+  document.getElementById('pageContent').innerHTML = html;
+}
+
+function renderBudgetCard(category, month){
+  const status = getBudgetStatus(category, month);
+  const color = CATEGORY_COLORS[category] || CATEGORY_COLORS['Other'];
+  
+  let statusColor = 'var(--emerald-dark)';
+  let statusBg = 'var(--emerald-tint)';
+  let statusText = 'On Track';
+  
+  if(status.status === 'exceeded'){
+    statusColor = 'var(--brick)';
+    statusBg = 'var(--brick-tint)';
+    statusText = 'Over Budget';
+  } else if(status.status === 'warning'){
+    statusColor = 'var(--amber)';
+    statusBg = 'var(--amber-tint)';
+    statusText = 'Near Limit';
+  }
+  
+  return `
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="width:12px;height:12px;border-radius:3px;background:${color};"></div>
+        <div style="font-weight:600;font-size:15px;flex:1;">${category}</div>
+        ${status.budget > 0 ? `<span style="font-size:11px;padding:4px 10px;border-radius:12px;background:${statusBg};color:${statusColor};font-weight:600;">${statusText}</span>` : ''}
+      </div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div>
+          <label style="font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;display:block;margin-bottom:6px;">Budget Amount</label>
+          <input type="number" id="budget_${category.replace(/[^a-z0-9]/gi,'_')}" value="${status.budget || ''}" min="0" step="100" placeholder="0" style="width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:7px;font-size:14px;background:var(--surface);font-family:'IBM Plex Mono',monospace;font-weight:600;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;display:block;margin-bottom:6px;">Actions</label>
+          <button class="btn btn-primary" style="width:100%;padding:9px;" onclick="saveBudget('${category}', '${month}')">Save</button>
+        </div>
+      </div>
+      
+      ${status.budget > 0 ? `
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12.5px;">
+            <span style="color:var(--ink-soft);">Spent: <b style="color:${statusColor};font-family:'IBM Plex Mono',monospace;">${money(status.spent)}</b></span>
+            <span style="color:var(--ink-soft);">Remaining: <b style="color:${status.remaining >= 0 ? 'var(--emerald-dark)' : 'var(--brick)'};font-family:'IBM Plex Mono',monospace;">${money(status.remaining)}</b></span>
+          </div>
+          <div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;background:${statusColor};width:${Math.min(status.percentage, 100)}%;transition:width .3s ease;"></div>
+          </div>
+          <div style="margin-top:6px;text-align:center;font-size:11px;color:var(--ink-soft);font-weight:600;">${status.percentage}% used</div>
+        </div>
+      ` : `
+        <div style="text-align:center;padding:12px;background:var(--paper);border-radius:6px;font-size:12px;color:var(--ink-soft);">
+          No budget set for this category
+        </div>
+      `}
+    </div>
+  `;
+}
+
+async function saveBudget(category, month){
+  const inputId = 'budget_' + category.replace(/[^a-z0-9]/gi,'_');
+  const amount = parseFloat(document.getElementById(inputId).value) || 0;
+  
+  if(amount < 0){
+    showToast('Budget amount must be positive');
+    return;
+  }
+  
+  // Remove existing budget for this category and month
+  state.budgets = state.budgets.filter(b=>!(b.category===category && b.month===month));
+  
+  // Add new budget if amount > 0
+  if(amount > 0){
+    state.budgets.push({
+      id: uid(),
+      category,
+      amount,
+      month
+    });
+  }
+  
+  await persistAll();
+  showToast(`Budget ${amount > 0 ? 'saved' : 'removed'} for ${category}`);
+  renderBudgets();
+}
+
+function setBudgetsForAllCategories(month){
+  openModal(`
+    <h3>Set Budget for All Categories</h3>
+    <div class="msub">Enter a default budget amount to apply to all expense categories.</div>
+    <div class="field">
+      <label>Budget Amount</label>
+      <input type="number" id="bulk_budget" min="0" step="100" placeholder="e.g. 5000">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="applyBulkBudget('${month}')">Apply to All</button>
+    </div>
+  `);
+}
+
+async function applyBulkBudget(month){
+  const amount = parseFloat(document.getElementById('bulk_budget').value);
+  if(!amount || amount <= 0){
+    showToast('Please enter a valid amount');
+    return;
+  }
+  
+  // Remove all budgets for this month
+  state.budgets = state.budgets.filter(b=>b.month!==month);
+  
+  // Add budget for each category
+  EXPENSE_CATEGORIES.forEach(category=>{
+    state.budgets.push({
+      id: uid(),
+      category,
+      amount,
+      month
+    });
+  });
+  
+  await persistAll();
+  closeModal();
+  showToast(`Budget of ${money(amount)} set for all categories`);
+  renderBudgets();
+}
+
+function copyBudgetsFromPreviousMonth(month){
+  const [year, monthNum] = month.split('-').map(Number);
+  const prevDate = new Date(year, monthNum - 2, 1);
+  const prevMonth = prevDate.toISOString().slice(0,7);
+  
+  const prevBudgets = state.budgets.filter(b=>b.month===prevMonth);
+  
+  if(prevBudgets.length === 0){
+    showToast('No budgets found in previous month');
+    return;
+  }
+  
+  openModal(`
+    <h3>Copy Budgets from ${formatMonthLabel(prevMonth)}</h3>
+    <div class="msub">This will copy all budget allocations from ${formatMonthLabel(prevMonth)} to ${formatMonthLabel(month)}. Existing budgets for ${formatMonthLabel(month)} will be replaced.</div>
+    <div style="padding:12px;background:var(--paper);border-radius:8px;margin:14px 0;font-size:13px;">
+      <b>${prevBudgets.length} budget(s)</b> will be copied.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="executeCopyBudgets('${prevMonth}', '${month}')">Copy Budgets</button>
+    </div>
+  `);
+}
+
+async function executeCopyBudgets(fromMonth, toMonth){
+  const prevBudgets = state.budgets.filter(b=>b.month===fromMonth);
+  
+  // Remove existing budgets for target month
+  state.budgets = state.budgets.filter(b=>b.month!==toMonth);
+  
+  // Copy budgets with new month
+  prevBudgets.forEach(b=>{
+    state.budgets.push({
+      id: uid(),
+      category: b.category,
+      amount: b.amount,
+      month: toMonth
+    });
+  });
+  
+  await persistAll();
+  closeModal();
+  showToast(`Copied ${prevBudgets.length} budget(s) to ${formatMonthLabel(toMonth)}`);
+  renderBudgets();
+}
+
+/* ============================================================
+   TRANSFER MONEY PAGE
+============================================================ */
+function renderTransfers(){
+  const accounts = [{id:'cash', label:'Cash'}].concat(state.banks.map(b=>({id:b.id, label:b.bankName+' (••'+b.last4+')'})));
+  const rows = [...state.transfers].sort((a,b)=> b.date.localeCompare(a.date));
+  
+  const html = `
+    <div class="hint-banner">
+      Transfer money between your own accounts (self-transfer) or send money to others (P2P transfer). Transfers automatically update your account balances.
+    </div>
+    
+    <div class="form-card">
+      <div style="margin-bottom:18px;">
+        <div style="font-weight:600;font-size:15px;margin-bottom:6px;">New Transfer</div>
+        <div style="font-size:12.5px;color:var(--ink-soft);">Move money between accounts or send to someone else</div>
+      </div>
+      
+      <div class="form-grid">
+        <div class="field"><label>Date</label><input type="date" id="tr_date" value="${new Date().toISOString().slice(0,10)}"></div>
+        
+        <div class="field"><label>Transfer Type</label>
+          <select id="tr_type" onchange="toggleRecipientField()">
+            <option value="self">Self Transfer (Between My Accounts)</option>
+            <option value="lend">Lend Money (You give money to someone)</option>
+            <option value="borrow">Borrow Money (You receive money from someone)</option>
+          </select>
+        </div>
+        
+        <div class="field"><label>From Account</label>
+          <select id="tr_from">${accounts.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}</select>
+        </div>
+        
+        <div class="field"><label>To Account</label>
+          <select id="tr_to">${accounts.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}</select>
+        </div>
+        
+        <div class="field" id="recipient_field" style="display:none;">
+          <label>Recipient Name</label>
+          <input type="text" id="tr_recipient" placeholder="e.g. John Doe">
+        </div>
+        
+        <div class="field"><label>Amount</label><input type="number" id="tr_amount" min="0" step="0.01" placeholder="0"></div>
+        
+        <div class="field full" style="grid-column:span 2;"><label>Note (Optional)</label><input type="text" id="tr_note" placeholder="e.g. Rent payment, Gift, etc."></div>
+        
+        <div class="field" id="p2p_status_field" style="display:none;">
+          <label>Status</label>
+          <select id="tr_status">
+            <option value="sent">Sent (No Return Expected)</option>
+            <option value="receivable">To Be Received (Lending)</option>
+          </select>
+        </div>
+        
+        <div class="field" id="p2p_due_field" style="display:none;">
+          <label>Expected Return Date</label>
+          <input type="date" id="tr_due_date">
+        </div>
+        
+        <div class="field full" style="grid-column:1/-1;"><button class="btn btn-primary" onclick="addTransfer()">Process Transfer</button></div>
+      </div>
+      
+      ${state.banks.length===0 ? '<div class="hint-banner" style="margin-top:14px;margin-bottom:0;">You haven\'t added a bank account yet. Add one from the profile menu to enable transfers between accounts.</div>' : ''}
+    </div>
+    
+    <div class="table-wrap">
+      ${rows.length===0 ? `
+        <div class="empty-state">
+          <div class="em-title">No transfers recorded</div>
+          <div class="em-sub">Your transfer history will appear here once you make your first transfer.</div>
+        </div>` : `
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>From</th><th>To</th><th>Recipient</th><th>Status</th><th style="text-align:right;">Amount</th><th>Due Date</th><th>Note</th><th></th></tr></thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td>${fmtDate(r.date)}</td>
+                <td><span class="tag" style="background:${r.type==='self'?'var(--brass-tint)':'var(--emerald-tint)'};color:${r.type==='self'?'var(--brass)':'var(--emerald-dark)'};">${r.type==='self'?'SELF':'P2P'}</span></td>
+                <td>${modeLabel(r.fromAccount)}</td>
+                <td>${r.type==='self' ? modeLabel(r.toAccount) : '—'}</td>
+                <td>${r.recipientName || '—'}</td>
+                <td>${r.type==='p2p' && r.status ? `<span class="tag" style="background:${r.status==='receivable'?'var(--amber-tint)':'var(--paper)'};color:${r.status==='receivable'?'var(--amber)':'var(--ink-soft)'};">${r.status==='receivable'?'TO RECEIVE':'SENT'}</span>` : '—'}</td>
+                <td class="amt">${money(r.amount)}</td>
+                <td>${r.dueDate ? fmtDate(r.dueDate) : '—'}</td>
+                <td>${r.note || '—'}</td>
+                <td><div class="row-actions"><button class="icon-btn" onclick="editTransfer('${r.id}')">Edit</button><button class="icon-btn" onclick="deleteTransfer('${r.id}')">Delete</button></div></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+  document.getElementById('pageContent').innerHTML = html;
+}
+
+function toggleRecipientField(){
+  const type = document.getElementById('tr_type').value;
+  const recipientField = document.getElementById('recipient_field');
+  const toField = document.getElementById('tr_to');
+  const statusField = document.getElementById('p2p_status_field');
+  const dueField = document.getElementById('p2p_due_field');
+  
+  // Update recipient field label based on type
+  const recipientLabel = recipientField?.querySelector('label');
+  if(recipientLabel){
+    if(type === 'lend') recipientLabel.textContent = 'Lending To';
+    else if(type === 'borrow') recipientLabel.textContent = 'Borrowing From';
+    else recipientLabel.textContent = 'Recipient Name';
+  }
+  
+  if(type === 'lend' || type === 'borrow'){
+    recipientField.style.display = 'block';
+    statusField.style.display = 'block';
+    dueField.style.display = 'block'; // Always show due date for lending/borrowing
+    toField.disabled = true;
+    toField.value = 'external';
+    
+    // Update status field options based on type
+    const statusSelect = document.getElementById('tr_status');
+    if(statusSelect){
+      if(type === 'lend'){
+        statusSelect.innerHTML = `
+          <option value="lent">Money Lent (To Be Received)</option>
+          <option value="gift">Gift (No Return Expected)</option>
+        `;
+      } else if(type === 'borrow'){
+        statusSelect.innerHTML = `
+          <option value="borrowed">Money Borrowed (To Be Repaid)</option>
+          <option value="received">Gift Received (No Repayment)</option>
+        `;
+      }
+    }
+  } else {
+    recipientField.style.display = 'none';
+    statusField.style.display = 'none';
+    dueField.style.display = 'none';
+    toField.disabled = false;
+  }
+}
+
+async function addTransfer(){
+  const date = document.getElementById('tr_date').value;
+  const type = document.getElementById('tr_type').value;
+  const fromAccount = document.getElementById('tr_from').value;
+  const toAccount = type === 'self' ? document.getElementById('tr_to').value : null;
+  const recipientName = (type === 'lend' || type === 'borrow') ? document.getElementById('tr_recipient').value.trim() : null;
+  const amount = parseFloat(document.getElementById('tr_amount').value);
+  const note = document.getElementById('tr_note').value.trim();
+  const status = (type === 'lend' || type === 'borrow') ? document.getElementById('tr_status').value : null;
+  const dueDate = (type === 'lend' || type === 'borrow') ? document.getElementById('tr_due_date').value : null;
+  
+  if(!date || !amount || amount<=0){ 
+    showToast('Enter a valid date and amount'); 
+    return; 
+  }
+  
+  if(type === 'self' && fromAccount === toAccount){
+    showToast('Cannot transfer to the same account');
+    return;
+  }
+  
+  if((type === 'lend' || type === 'borrow') && !recipientName){
+    showToast(`Enter ${type === 'lend' ? 'who you are lending to' : 'who you are borrowing from'}`);
+    return;
+  }
+  
+  // For lending - check if from account has sufficient balance
+  if(type === 'lend'){
+    const fromBalance = accountBalance(fromAccount).balance;
+    if(fromBalance < amount){
+      showToast(`Insufficient balance in ${modeLabel(fromAccount)}. Available: ${money(fromBalance)}`);
+      return;
+    }
+  }
+  
+  // For borrowing - add to loans if it's money to be repaid
+  if(type === 'borrow' && status === 'borrowed'){
+    const loanName = `Borrowed from ${recipientName}`;
+    
+    // Calculate EMI if due date is provided (simple calculation)
+    let emi = 0;
+    if(dueDate){
+      const startDate = new Date(date);
+      const endDate = new Date(dueDate);
+      const monthsDiff = Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24 * 30)));
+      emi = amount / monthsDiff;
+    }
+    
+    // Add to loans
+    state.loans.push({
+      id: uid(),
+      name: loanName,
+      principal: amount,
+      emi: emi,
+      tenureMonths: dueDate ? Math.max(1, Math.round((new Date(dueDate) - new Date(date)) / (1000 * 60 * 60 * 24 * 30))) : 0,
+      startDate: date,
+      rate: 0, // Personal loans typically don't have specified interest
+      lender: recipientName,
+      borrowType: 'personal'
+    });
+  }
+  
+  state.transfers.push({
+    id: uid(),
+    date,
+    type,
+    fromAccount: type === 'borrow' ? 'external' : fromAccount,
+    toAccount: type === 'borrow' ? toAccount || fromAccount : toAccount,
+    recipientName,
+    amount,
+    note,
+    status,
+    dueDate
+  });
+  
+  await persistAll();
+  
+  let message = 'Transfer completed';
+  if(type === 'lend') message = status === 'gift' ? 'Gift sent' : 'Money lent - receivable recorded';
+  else if(type === 'borrow') message = status === 'received' ? 'Gift received' : 'Money borrowed - added to loans';
+  
+  showToast(message);
+  renderTransfers();
+}
+
+function editTransfer(id){
+  const transfer = state.transfers.find(t=>t.id===id);
+  if(!transfer) return;
+  
+  const accounts = [{id:'cash', label:'Cash'}].concat(state.banks.map(b=>({id:b.id, label:b.bankName+' (••'+b.last4+')'})));
+  
+  openModal(`
+    <h3>Edit Transfer</h3>
+    <div class="msub">Update the transfer details.</div>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="edit_tr_date" value="${transfer.date}">
+    </div>
+    <div class="field">
+      <label>Transfer Type</label>
+      <select id="edit_tr_type" onchange="toggleEditRecipientField()">
+        <option value="self" ${transfer.type==='self'?'selected':''}>Self Transfer (Between My Accounts)</option>
+        <option value="lend" ${transfer.type==='lend'?'selected':''}>Lend Money (You give money to someone)</option>
+        <option value="borrow" ${transfer.type==='borrow'?'selected':''}>Borrow Money (You receive money from someone)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>From Account</label>
+      <select id="edit_tr_from">
+        ${accounts.map(a=>`<option value="${a.id}" ${a.id===transfer.fromAccount?'selected':''}>${a.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field" id="edit_to_field" style="${transfer.type==='p2p'?'display:none;':''}">
+      <label>To Account</label>
+      <select id="edit_tr_to" ${transfer.type==='p2p'?'disabled':''}>
+        ${accounts.map(a=>`<option value="${a.id}" ${a.id===transfer.toAccount?'selected':''}>${a.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field" id="edit_recipient_field" style="${transfer.type==='self'?'display:none;':''}">
+      <label>Recipient Name</label>
+      <input type="text" id="edit_tr_recipient" value="${transfer.recipientName||''}">
+    </div>
+    <div class="field">
+      <label>Amount</label>
+      <input type="number" id="edit_tr_amount" min="0" step="0.01" value="${transfer.amount}">
+    </div>
+    <div class="field" style="grid-column:span 2;">
+      <label>Note (Optional)</label>
+      <input type="text" id="edit_tr_note" value="${transfer.note||''}">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateTransfer('${id}')">Update Transfer</button>
+    </div>
+  `, true);
+}
+
+function toggleEditRecipientField(){
+  const type = document.getElementById('edit_tr_type').value;
+  const recipientField = document.getElementById('edit_recipient_field');
+  const toField = document.getElementById('edit_tr_to');
+  const toFieldContainer = document.getElementById('edit_to_field');
+  
+  if(type === 'p2p'){
+    recipientField.style.display = 'block';
+    toFieldContainer.style.display = 'none';
+    toField.disabled = true;
+  } else {
+    recipientField.style.display = 'none';
+    toFieldContainer.style.display = 'block';
+    toField.disabled = false;
+  }
+}
+
+async function updateTransfer(id){
+  const date = document.getElementById('edit_tr_date').value;
+  const type = document.getElementById('edit_tr_type').value;
+  const fromAccount = document.getElementById('edit_tr_from').value;
+  const toAccount = type === 'self' ? document.getElementById('edit_tr_to').value : null;
+  const recipientName = type === 'p2p' ? document.getElementById('edit_tr_recipient').value.trim() : null;
+  const amount = parseFloat(document.getElementById('edit_tr_amount').value);
+  const note = document.getElementById('edit_tr_note').value.trim();
+  
+  if(!date || !amount || amount<=0){ 
+    showToast('Enter a valid date and amount'); 
+    return; 
+  }
+  
+  if(type === 'self' && fromAccount === toAccount){
+    showToast('Cannot transfer to the same account');
+    return;
+  }
+  
+  if(type === 'p2p' && !recipientName){
+    showToast('Enter recipient name for P2P transfer');
+    return;
+  }
+  
+  const transfer = state.transfers.find(t=>t.id===id);
+  if(transfer){
+    // Calculate old balance impact to reverse it
+    const oldFromBalance = accountBalance(transfer.fromAccount).balance + (transfer.fromAccount === fromAccount ? transfer.amount : 0);
+    
+    // Check if new from account has sufficient balance (considering the reversal)
+    const newFromBalance = transfer.fromAccount === fromAccount 
+      ? oldFromBalance  // Same account, just check current balance
+      : accountBalance(fromAccount).balance; // Different account
+    
+    if(newFromBalance < amount){
+      showToast(`Insufficient balance in ${modeLabel(fromAccount)}. Available: ${money(newFromBalance)}`);
+      return;
+    }
+    
+    transfer.date = date;
+    transfer.type = type;
+    transfer.fromAccount = fromAccount;
+    transfer.toAccount = toAccount;
+    transfer.recipientName = recipientName;
+    transfer.amount = amount;
+    transfer.note = note;
+    
+    await persistAll();
+    closeModal();
+    showToast('Transfer updated');
+    renderTransfers();
+  }
+}
+
+async function deleteTransfer(id){
+  state.transfers = state.transfers.filter(t=>t.id!==id);
+  await persistAll();
+  renderTransfers();
+}
+ 
+/* ============================================================
+   BOOTSTRAP — Force signup for new users, login for existing
+============================================================ */
+(async function init(){
+  console.log('[Init] Starting bootstrap...');
+  
+  // Check if there's an active session
+  const currentSession = await sGet('session', false);
+  console.log('[Init] Current session:', currentSession);
+  
+  if(currentSession){
+    // User has an active session - restore it
+    console.log('[Init] Session found, restoring user: ' + currentSession);
+    const loaded = await loadSession(currentSession);
+    if(loaded){
+      console.log('[Init] Session restored successfully');
+      return;
+    }
+  }
+  
+  // No active session - show auth screen
+  console.log('[Init] No active session found');
+  
+  // Check if any users exist in the system
+  const hasAnyUsers = await checkIfAnyUsersExist();
+  
+  if(!hasAnyUsers){
+    // New user - force signup tab
+    console.log('[Init] No users exist, showing signup');
+    switchAuthTab('signup');
+  } else {
+    // Existing users exist - show login tab
+    console.log('[Init] Users exist, showing login');
+    switchAuthTab('login');
+  }
+})();
+
+async function checkIfAnyUsersExist(){
+  // This is a simple check - in a real system you'd check a user database
+  // For demo, we'll check if there are any user entries in localStorage
+  try {
+    for(let i = 0; i < localStorage.length; i++){
+      const key = localStorage.key(i);
+      if(key && key.startsWith('shared_user:')){
+        return true;
+      }
+    }
+    return false;
+  } catch(e) {
+    return false;
+  }
+}
+</script>
+</body>
+</html>
