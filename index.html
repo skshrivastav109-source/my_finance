@@ -3072,6 +3072,7 @@ async function updateTransfer(id){
       ? oldFromBalance  // Same account, just check current balance
       : accountBalance(fromAccount).balance; // Different account
     
+      
     if(newFromBalance < amount){
       showToast(`Insufficient balance in ${modeLabel(fromAccount)}. Available: ${money(newFromBalance)}`);
       return;
