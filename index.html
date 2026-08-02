@@ -146,12 +146,49 @@ a{color:inherit;}
 .btn-outline{background:transparent;border:1px solid var(--line-strong);color:var(--ink);}
 .btn-outline:hover{border-color:var(--emerald);color:var(--emerald-dark);}
 .btn-sm{padding:7px 12px;font-size:12.5px;border-radius:6px;}
+.btn:disabled{opacity:0.7;cursor:default;}
+.btn .spinner{
+  width:14px;height:14px;border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;
+  border-radius:50%;animation:btnspin .7s linear infinite;flex-shrink:0;
+}
+.btn-outline .spinner, .btn-google .spinner{border-color:rgba(22,33,29,0.2);border-top-color:var(--ink);}
+@keyframes btnspin{to{transform:rotate(360deg);}}
 .auth-msg{font-size:13px;padding:10px 12px;border-radius:8px;margin-bottom:16px;}
 .auth-msg.err{background:var(--brick-tint);color:var(--brick);}
 .auth-msg.ok{background:var(--emerald-tint);color:var(--emerald-dark);}
 .auth-switch{margin-top:18px;font-size:13px;color:var(--ink-soft);text-align:center;}
 .auth-switch a{color:var(--emerald-dark);font-weight:600;cursor:pointer;text-decoration:underline;}
- 
+.btn-google{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);width:100%;margin-bottom:20px;}
+.btn-google:hover{background:var(--paper);border-color:var(--line-strong);}
+.btn-google:disabled{opacity:0.6;cursor:default;}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:0 0 20px;font-size:11.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;}
+.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--line);}
+
+@media(max-width:720px){
+  #authScreen{padding:16px;align-items:flex-start;}
+  .auth-wrap{
+    grid-template-columns:1fr;
+    max-width:460px;
+    min-height:0;
+    border-radius:14px;
+    margin:0 auto;
+  }
+  .auth-brand{padding:26px 24px 20px;}
+  .auth-brand::after{display:none;}
+  .auth-brand h1{font-size:25px;margin:18px 0 8px;}
+  .auth-brand p{font-size:13.5px;max-width:none;}
+  .ledger-lines{display:none;}
+  .auth-brand .foot{margin-top:14px;}
+  .auth-panel{padding:26px 22px 30px;}
+}
+@media(max-width:380px){
+  #authScreen{padding:10px;}
+  .auth-brand{padding:22px 18px 18px;}
+  .auth-brand h1{font-size:22px;}
+  .auth-panel{padding:22px 16px 26px;}
+  .field input, .field select{padding:10px 11px;font-size:14px;}
+}
+
 /* ================= APP SHELL ================= */
 #appShell{display:none;min-height:100vh;}
 .shell-grid{display:grid;grid-template-columns:236px 1fr;min-height:100vh;}
@@ -382,9 +419,9 @@ td.amt.debit{color:var(--brick);}
 </style>
 
 <!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.0/firebase-auth-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyCTW4qE4Dj1FxeIs_L2-e0rwVsJEm5Rcb4",
@@ -400,7 +437,8 @@ td.amt.debit{color:var(--brick);}
   const app = firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
   const auth = firebase.auth();
-  
+  const googleProvider = new firebase.auth.GoogleAuthProvider();
+
   console.log('[Firebase] Initialized successfully');
 </script>
 
@@ -424,6 +462,18 @@ td.amt.debit{color:var(--brick);}
       <div class="foot">Your data is saved to your account and only unlocked by your password.</div>
     </div>
     <div class="auth-panel">
+      <div id="googleAuthBlock">
+        <button type="button" class="btn btn-google" id="googleSignInBtn" onclick="handleGoogleSignIn()">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.8 2.73v2.27h2.91c1.7-1.57 2.69-3.88 2.69-6.64z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.27c-.81.54-1.84.86-3.05.86-2.34 0-4.32-1.58-5.03-3.71H.96v2.33C2.44 15.98 5.48 18 9 18z"/>
+            <path fill="#FBBC05" d="M3.97 10.7A5.4 5.4 0 0 1 3.68 9c0-.59.1-1.17.29-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l3.01-2.33z"/>
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.97l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/>
+          </svg>
+          Log in with Google
+        </button>
+        <div class="auth-divider">or use a username &amp; password</div>
+      </div>
       <div class="auth-tabs">
         <button id="tabLoginBtn" class="active" onclick="switchAuthTab('login')">Log In</button>
         <button id="tabSignupBtn" onclick="switchAuthTab('signup')">Sign Up</button>
@@ -597,6 +647,20 @@ function showToast(msg){
   clearTimeout(window.__toastTimer);
   window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
 }
+function setBtnLoading(btn, loading, label){
+  if(!btn) return;
+  if(loading){
+    if(btn.dataset.originalHtml === undefined) btn.dataset.originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span>${label || 'Please wait…'}`;
+  } else {
+    btn.disabled = false;
+    if(btn.dataset.originalHtml !== undefined){
+      btn.innerHTML = btn.dataset.originalHtml;
+      delete btn.dataset.originalHtml;
+    }
+  }
+}
  
 /* ============================================================
    APP STATE
@@ -627,6 +691,7 @@ function resetSessionTimer(){
 
 async function autoLogout(){
   if(state.user){
+    try { if(auth.currentUser) await auth.signOut(); } catch(e){ console.warn('[Google] signOut failed', e); }
     await sSet('session', '', false);
     state = {user:null, banks:[], incomes:[], expenses:[], loans:[], budgets:[], transfers:[]};
     
@@ -737,6 +802,7 @@ function switchAuthTab(tab){
   document.getElementById('loginForm').style.display = tab==='login' ? 'block' : 'none';
   document.getElementById('signupForm').style.display = tab==='signup' ? 'block' : 'none';
   document.getElementById('otpForm').style.display = 'none';
+  document.getElementById('googleAuthBlock').style.display = tab==='login' ? 'block' : 'none';
   document.getElementById('authSwitchLine').innerHTML = tab==='login'
     ? 'New here? <a onclick="switchAuthTab(\'signup\')">Create an account</a>'
     : 'Already have an account? <a onclick="switchAuthTab(\'login\')">Log in</a>';
@@ -781,48 +847,55 @@ function sendOTPEmail(email, otp){
  
 async function handleSignup(e){
   e.preventDefault();
-  const name = document.getElementById('su_name').value.trim();
-  const email = document.getElementById('su_email').value.trim();
-  const username = document.getElementById('su_username').value.trim();
-  const password = document.getElementById('su_password').value;
- 
-  if(!name || !email || !username){ authMsg('Please fill in every field.'); return false; }
-  
-  // Validate username
-  const usernameError = validateUsername(username);
-  if(usernameError){ authMsg(usernameError); return false; }
-  
-  // Validate password
-  const passwordError = validatePassword(password);
-  if(passwordError){ authMsg(passwordError); return false; }
- 
-  const existing = await sGet('user:'+username.toLowerCase(), true);
-  if(existing){ authMsg('That username is already taken. Try another.'); return false; }
- 
-  // Generate and store OTP
-  const otp = generateOTP();
-  const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes from now
-  
-  // Store temporary signup data
-  tempSignupData = {
-    name,
-    email,
-    username: username.toLowerCase(),
-    password,
-    otp,
-    otpExpiry
-  };
- 
-  // Send OTP to email (simulated)
-  sendOTPEmail(email, otp);
- 
-  // Show OTP form
-  document.getElementById('signupForm').style.display = 'none';
-  document.getElementById('otpForm').style.display = 'block';
-  document.getElementById('authSwitchLine').innerHTML = '';
-  authMsg('Verification code sent! Check your email.', true);
-  
-  return false;
+  const btn = e.target.querySelector('button[type="submit"]');
+  setBtnLoading(btn, true, 'Sending code…');
+  try {
+    await ensureFirebaseAuthed();
+    const name = document.getElementById('su_name').value.trim();
+    const email = document.getElementById('su_email').value.trim();
+    const username = document.getElementById('su_username').value.trim();
+    const password = document.getElementById('su_password').value;
+
+    if(!name || !email || !username){ authMsg('Please fill in every field.'); return false; }
+
+    // Validate username
+    const usernameError = validateUsername(username);
+    if(usernameError){ authMsg(usernameError); return false; }
+
+    // Validate password
+    const passwordError = validatePassword(password);
+    if(passwordError){ authMsg(passwordError); return false; }
+
+    const existing = await sGet('user:'+username.toLowerCase(), true);
+    if(existing){ authMsg('That username is already taken. Try another.'); return false; }
+
+    // Generate and store OTP
+    const otp = generateOTP();
+    const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes from now
+
+    // Store temporary signup data
+    tempSignupData = {
+      name,
+      email,
+      username: username.toLowerCase(),
+      password,
+      otp,
+      otpExpiry
+    };
+
+    // Send OTP to email (simulated)
+    sendOTPEmail(email, otp);
+
+    // Show OTP form
+    document.getElementById('signupForm').style.display = 'none';
+    document.getElementById('otpForm').style.display = 'block';
+    document.getElementById('authSwitchLine').innerHTML = '';
+    authMsg('Verification code sent! Check your email.', true);
+
+    return false;
+  } finally {
+    setBtnLoading(btn, false);
+  }
 }
  
 async function handleOTPVerify(e){
@@ -846,38 +919,44 @@ async function handleOTPVerify(e){
     authMsg('Invalid verification code. Please try again.');
     return false;
   }
- 
-  // OTP is correct, create the account
-  const userObj = {
-    name: tempSignupData.name,
-    email: tempSignupData.email,
-    username: tempSignupData.username,
-    passwordHash: hashPassword(tempSignupData.password),
-    emailVerified: true,
-    createdAt: new Date().toISOString()
-  };
- 
-  await sSet('user:'+tempSignupData.username, userObj, true);
-  await sSet('banks:'+tempSignupData.username, [], true);
-  await sSet('income:'+tempSignupData.username, [], true);
-  await sSet('expenses:'+tempSignupData.username, [], true);
-  await sSet('loans:'+tempSignupData.username, [], true);
-  await sSet('budgets:'+tempSignupData.username, [], true);
-  await sSet('transfers:'+tempSignupData.username, [], true);
- 
-  authMsg('Account created successfully! You can log in now.', true);
-  
-  // Clear temporary data
-  const savedUsername = tempSignupData.username;
-  tempSignupData = null;
-  
-  // Switch to login and prefill username
-  setTimeout(() => {
-    switchAuthTab('login');
-    document.getElementById('li_username').value = savedUsername;
-  }, 1500);
- 
-  return false;
+
+  const btn = e.target.querySelector('button[type="submit"]');
+  setBtnLoading(btn, true, 'Creating account…');
+  try {
+    // OTP is correct, create the account
+    const userObj = {
+      name: tempSignupData.name,
+      email: tempSignupData.email,
+      username: tempSignupData.username,
+      passwordHash: hashPassword(tempSignupData.password),
+      emailVerified: true,
+      createdAt: new Date().toISOString()
+    };
+
+    await sSet('user:'+tempSignupData.username, userObj, true);
+    await sSet('banks:'+tempSignupData.username, [], true);
+    await sSet('income:'+tempSignupData.username, [], true);
+    await sSet('expenses:'+tempSignupData.username, [], true);
+    await sSet('loans:'+tempSignupData.username, [], true);
+    await sSet('budgets:'+tempSignupData.username, [], true);
+    await sSet('transfers:'+tempSignupData.username, [], true);
+
+    authMsg('Account created successfully! You can log in now.', true);
+
+    // Clear temporary data
+    const savedUsername = tempSignupData.username;
+    tempSignupData = null;
+
+    // Switch to login and prefill username
+    setTimeout(() => {
+      switchAuthTab('login');
+      document.getElementById('li_username').value = savedUsername;
+    }, 1500);
+
+    return false;
+  } finally {
+    setBtnLoading(btn, false);
+  }
 }
  
 function resendOTP(){
@@ -899,20 +978,74 @@ function resendOTP(){
   document.getElementById('otp_code').value = '';
 }
  
+async function ensureFirebaseAuthed(){
+  if(!auth.currentUser){
+    try { await auth.signInAnonymously(); }
+    catch(e){ console.warn('[Firebase] anonymous auth failed', e); }
+  }
+}
+
 async function handleLogin(e){
   e.preventDefault();
-  const username = document.getElementById('li_username').value.trim().toLowerCase();
-  const password = document.getElementById('li_password').value;
-  const user = await sGet('user:'+username, true);
-  if(!user || user.passwordHash !== hashPassword(password)){
-    authMsg('Username or password is incorrect.');
+  const btn = e.target.querySelector('button[type="submit"]');
+  setBtnLoading(btn, true, 'Logging in…');
+  try {
+    await ensureFirebaseAuthed();
+    const username = document.getElementById('li_username').value.trim().toLowerCase();
+    const password = document.getElementById('li_password').value;
+    const user = await sGet('user:'+username, true);
+    if(!user || user.passwordHash !== hashPassword(password)){
+      authMsg('Username or password is incorrect.');
+      return false;
+    }
+    await sSet('session', username, false);
+    await loadSession(username);
     return false;
+  } finally {
+    setBtnLoading(btn, false);
   }
-  await sSet('session', username, false);
-  await loadSession(username);
-  return false;
 }
- 
+
+async function handleGoogleSignIn(){
+  const btn = document.getElementById('googleSignInBtn');
+  setBtnLoading(btn, true, 'Signing in…');
+  try {
+    const result = await auth.signInWithPopup(googleProvider);
+    const gUser = result.user;
+    const username = 'g_' + gUser.uid;
+
+    let userObj = await sGet('user:'+username, true);
+    if(!userObj){
+      userObj = {
+        name: gUser.displayName || (gUser.email ? gUser.email.split('@')[0] : 'Google User'),
+        email: gUser.email || '',
+        username,
+        photoURL: gUser.photoURL || '',
+        authProvider: 'google',
+        emailVerified: true,
+        createdAt: new Date().toISOString()
+      };
+      await sSet('user:'+username, userObj, true);
+      await sSet('banks:'+username, [], true);
+      await sSet('income:'+username, [], true);
+      await sSet('expenses:'+username, [], true);
+      await sSet('loans:'+username, [], true);
+      await sSet('budgets:'+username, [], true);
+      await sSet('transfers:'+username, [], true);
+    }
+
+    await sSet('session', username, false);
+    await loadSession(username);
+  } catch(err){
+    console.error('[Google Sign-In] failed', err);
+    if(err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request'){
+      authMsg('Google sign-in failed: ' + (err.message || 'please try again.'));
+    }
+  } finally {
+    setBtnLoading(btn, false);
+  }
+}
+
 async function loadSession(username){
   const user = await sGet('user:'+username, true);
   if(!user) return false;
@@ -927,8 +1060,13 @@ async function loadSession(username){
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('appShell').style.display = 'block';
   document.getElementById('profileName').textContent = user.name.split(' ')[0];
-  document.getElementById('avatarInitial').textContent = user.name.trim()[0].toUpperCase();
-  document.getElementById('sidebarUserLine').textContent = '@'+user.username;
+  const avatarEl = document.getElementById('avatarInitial');
+  if(user.photoURL){
+    avatarEl.innerHTML = `<img src="${user.photoURL}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+  } else {
+    avatarEl.textContent = user.name.trim()[0].toUpperCase();
+  }
+  document.getElementById('sidebarUserLine').textContent = user.authProvider === 'google' ? user.email : ('@'+user.username);
   
   // Start session management
   setupActivityTracking();
@@ -971,7 +1109,9 @@ function openLogoutConfirm(){
 async function doLogout(){
   // Clear session timer
   clearTimeout(sessionTimeout);
-  
+
+  try { if(auth.currentUser) await auth.signOut(); } catch(e){ console.warn('[Google] signOut failed', e); }
+
   await sSet('session', '', false);
   state = {user:null, banks:[], incomes:[], expenses:[], loans:[], budgets:[], transfers:[]};
   closeModal();
@@ -2963,7 +3103,11 @@ async function deleteTransfer(id){
 ============================================================ */
 (async function init(){
   console.log('[Init] Starting bootstrap...');
-  
+
+  // Establish a Firebase Auth session (anonymous, unless Google restores one)
+  // before any database read, so DB rules can require auth != null.
+  await ensureFirebaseAuthed();
+
   // Check if there's an active session
   const currentSession = await sGet('session', false);
   console.log('[Init] Current session:', currentSession);
