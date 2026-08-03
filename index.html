@@ -673,7 +673,7 @@ let state = {
   expenses: [],        // [{id,date,category,description,amount,paymentMode}]
   loans: [],            // [{id,name,principal,emi,tenureMonths,startDate,rate}]
   budgets: [],          // [{id,category,amount,month}] - month format: YYYY-MM
-  bills: [],            // [{id,billName,dueDate,amount,paymentMode,paid,category,description}]
+  bills: [],            // [{id,billName,dueDate,amount,paymentMode,paid,category,description,paymentDate,paidAmount}]
   transfers: []        // [{id,date,fromAccount,toAccount,amount,type,recipientName,note,status,dueDate}]
 };
 
@@ -1369,10 +1369,14 @@ function accountBalance(accountId){
   const transferIn = state.transfers.filter(t=>t.toAccount===accountId).reduce((s,t)=>s+Number(t.amount||0),0);
   const transferOut = state.transfers.filter(t=>t.fromAccount===accountId).reduce((s,t)=>s+Number(t.amount||0),0);
   
+  // Add unpaid bills deduction
+  const unpaidBills = state.bills.filter(b=>b.paymentMode===accountId && !b.paid).reduce((s,b)=>s+Number(b.amount||0),0);
+  
   return {
     credit: credit + transferIn, 
     debit: debit + transferOut, 
-    balance: credit + transferIn - debit - transferOut
+    unpaidBills: unpaidBills,
+    balance: credit + transferIn - debit - transferOut - unpaidBills
   };
 }
  
@@ -2556,6 +2560,13 @@ function renderBills(){
   const totalUpcoming = upcomingBills.reduce((s,b)=>s+Number(b.amount||0),0);
   const totalPaid = paidBills.reduce((s,b)=>s+Number(b.amount||0),0);
   
+  // Get account balances
+  const cashBalance = accountBalance('cash');
+  const bankBalances = state.banks.map(bank => ({
+    ...bank,
+    balanceInfo: accountBalance(bank.id)
+  }));
+  
   const paymentModes = () => {
     const modes = new Set();
     state.bills.forEach(b=>{ if(b.paymentMode) modes.add(b.paymentMode); });
@@ -2569,7 +2580,25 @@ function renderBills(){
       <div class="card card-stat"><div class="k">Total Bills</div><div class="v">${money(totalUpcoming + totalPaid)}</div><div class="d">${rows.length} total bill(s)</div></div>
     </div>
  
-    <div class="hint-banner">Track your upcoming bills and mark them as paid once you complete payment. Monitor payment modes and due dates to stay on top of your financial obligations.</div>
+    <div class="section-title" style="margin-top:0;margin-bottom:14px;"><span class="idx">01</span>Account Balances</div>
+    <div class="grid grid-3" style="margin-bottom:24px;">
+      <div class="acct-card">
+        <div class="name">Cash</div>
+        <div class="type">On hand</div>
+        <div class="acct-row"><span>Available</span><b style="color:${cashBalance.balance>=0?'var(--emerald-dark)':'var(--brick)'};">${money(cashBalance.balance)}</b></div>
+        <div class="acct-row"><span>Unpaid Bills</span><b style="color:var(--brick);">${money(cashBalance.unpaidBills)}</b></div>
+      </div>
+      ${bankBalances.map(bank=>`
+        <div class="acct-card">
+          <div class="name">${bank.bankName}</div>
+          <div class="type">Bank account</div>
+          <div class="acct-row"><span>Available</span><b style="color:${bank.balanceInfo.balance>=0?'var(--emerald-dark)':'var(--brick)'};">${money(bank.balanceInfo.balance)}</b></div>
+          <div class="acct-row"><span>Unpaid Bills</span><b style="color:var(--brick);">${money(bank.balanceInfo.unpaidBills)}</b></div>
+        </div>
+      `).join('')}
+    </div>
+ 
+    <div class="hint-banner">Your account balances are reduced by unpaid bills. When you mark a bill as paid, the balance will be updated. Add bills below to track upcoming payments against your account balances.</div>
  
     <div class="form-card">
       <div class="form-grid">
@@ -2577,14 +2606,15 @@ function renderBills(){
         <div class="field"><label>Category</label><select id="bill_category"><option value="">Select category</option><option value="Utilities">Utilities</option><option value="Subscriptions">Subscriptions</option><option value="Insurance">Insurance</option><option value="Rent">Rent</option><option value="Healthcare">Healthcare</option><option value="Other">Other</option></select></div>
         <div class="field"><label>Amount</label><input type="number" id="bill_amount" min="0" step="0.01" placeholder="0"></div>
         <div class="field"><label>Due Date</label><input type="date" id="bill_dueDate"></div>
-        <div class="field"><label>Payment Account</label><select id="bill_paymentMode">${state.banks.length===0 ? '<option value="">No bank accounts added</option>' : `<option value="">Select account</option><option value="cash">Cash</option>${state.banks.map(b=>`<option value="${b.id}">${b.bankName} (••${b.last4})</option>`).join('')}`}</select></div>
+        <div class="field"><label>Payment Account</label><select id="bill_paymentMode" onchange="updateAccountBalanceWarning()">${state.banks.length===0 ? '<option value="">No bank accounts added</option>' : `<option value="">Select account</option><option value="cash">Cash</option>${state.banks.map(b=>`<option value="${b.id}">${b.bankName} (••${b.last4})</option>`).join('')}`}</select></div>
         <div class="field full" style="grid-column:1/-1;"><button class="btn btn-primary" onclick="addBill()">Add Bill</button></div>
       </div>
+      <div id="balanceWarning"></div>
     </div>
     ${state.banks.length===0 ? '<div class="hint-banner" style="margin-top:14px;margin-bottom:0;">You haven\'t added a bank account yet. Add one from the profile menu to select a payment account for bills.</div>' : ''}
 
     <div style="margin-bottom:24px;">
-      <div class="section-title" style="margin-top:0;"><span class="idx">01</span>Upcoming Bills (Not Paid)</div>
+      <div class="section-title" style="margin-top:0;"><span class="idx">03</span>Upcoming Bills (Not Paid)</div>
       <div class="table-wrap">
         ${upcomingBills.length===0 ? `
           <div class="empty-state">
@@ -2612,7 +2642,7 @@ function renderBills(){
     </div>
 
     <div style="margin-bottom:24px;">
-      <div class="section-title" style="margin-top:0;"><span class="idx">02</span>Paid Bills</div>
+      <div class="section-title" style="margin-top:0;"><span class="idx">04</span>Paid Bills</div>
       <div class="table-wrap">
         ${paidBills.length===0 ? `
           <div class="empty-state">
@@ -2620,17 +2650,19 @@ function renderBills(){
             <div class="em-sub">Mark bills as paid to see them here.</div>
           </div>` : `
           <table>
-            <thead><tr><th>Bill Name</th><th>Category</th><th>Amount</th><th>Due Date</th><th>Payment Account</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Bill Name</th><th>Category</th><th>Bill Amount</th><th>Due Date</th><th>Payment Date</th><th>Amount Paid</th><th>Paid From</th><th>Status</th><th></th></tr></thead>
             <tbody>
               ${paidBills.map(b=>`
                 <tr>
                   <td><b>${b.billName}</b></td>
                   <td>${b.category || '—'}</td>
-                  <td class="amt credit">${money(b.amount)}</td>
+                  <td class="amt">${money(b.amount)}</td>
                   <td>${b.dueDate ? fmtDate(b.dueDate) : '—'}</td>
-                  <td><span class="tag" style="background:var(--emerald-tint);color:var(--emerald-dark);">${getAccountLabel(b.paymentMode)}</span></td>
+                  <td>${b.paymentDate ? fmtDate(b.paymentDate) : '—'}</td>
+                  <td class="amt credit">${money(b.paidAmount || b.amount)}</td>
+                  <td><span class="tag" style="background:var(--emerald-tint);color:var(--emerald-dark);">${getAccountLabel(b.paidFromAccount || b.paymentMode)}</span></td>
                   <td><span style="font-size:11px;padding:4px 10px;border-radius:12px;background:var(--emerald-tint);color:var(--emerald-dark);font-weight:600;">Paid</span></td>
-                  <td><div class="row-actions"><button class="icon-btn" onclick="markBillAsUnpaid('${b.id}')">Mark Unpaid</button><button class="icon-btn" onclick="deleteBill('${b.id}')">Delete</button></div></td>
+                  <td><div class="row-actions"><button class="icon-btn" onclick="markBillAsUnpaid('${b.id}')">Undo</button><button class="icon-btn" onclick="deleteBill('${b.id}')">Delete</button></div></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -2680,22 +2712,121 @@ async function addBill(){
 
 async function markBillAsPaid(id){
   const bill = state.bills.find(b=>b.id===id);
-  if(bill){
-    bill.paid = true;
-    await persistAll();
-    showToast(`Bill "${bill.billName}" marked as paid`);
-    renderBills();
-  }
+  if(!bill) return;
+  
+  // Show modal to capture payment details
+  openModal(`
+    <h3>Mark Bill as Paid</h3>
+    <div class="msub">Enter payment details for "${bill.billName}"</div>
+    
+    <div class="field">
+      <label>Payment Date</label>
+      <input type="date" id="payment_date" value="${new Date().toISOString().slice(0,10)}">
+      <small class="hint">When was this bill paid?</small>
+    </div>
+    
+    <div class="field">
+      <label>Amount Paid</label>
+      <input type="number" id="payment_amount" value="${bill.amount}" min="0" step="0.01">
+      <small class="hint">Amount that was paid (can differ from bill amount)</small>
+    </div>
+    
+    <div class="field">
+      <label>Payment Account</label>
+      <select id="payment_account">
+        <option value="">Select account</option>
+        <option value="cash">Cash</option>
+        ${state.banks.map(b=>`<option value="${b.id}">${b.bankName} (••${b.last4})</option>`).join('')}
+      </select>
+      <small class="hint">Which account was this payment made from?</small>
+    </div>
+    
+    <div id="paymentWarning"></div>
+    
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmBillPayment('${id}')">Mark Paid</button>
+    </div>
+  `);
+  
+  // Update warning as user selects account
+  document.getElementById('payment_account').addEventListener('change', updatePaymentAccountWarning);
+  document.getElementById('payment_amount').addEventListener('input', updatePaymentAccountWarning);
 }
 
-async function markBillAsUnpaid(id){
+async function confirmBillPayment(id){
   const bill = state.bills.find(b=>b.id===id);
-  if(bill){
-    bill.paid = false;
-    await persistAll();
-    showToast(`Bill "${bill.billName}" marked as unpaid`);
-    renderBills();
+  if(!bill) return;
+  
+  const paymentDate = document.getElementById('payment_date').value;
+  const paymentAmount = parseFloat(document.getElementById('payment_amount').value) || 0;
+  const paymentAccount = document.getElementById('payment_account').value;
+  
+  if(!paymentDate || paymentAmount <= 0 || !paymentAccount){
+    showToast('Enter payment date, amount, and select payment account');
+    return;
   }
+  
+  // Check if account has sufficient balance
+  const balance = accountBalance(paymentAccount);
+  if(balance.balance < paymentAmount){
+    showToast(`Insufficient balance in ${getAccountLabel(paymentAccount)}. Available: ${money(balance.balance)}`);
+    return;
+  }
+  
+  // Mark bill as paid
+  bill.paid = true;
+  bill.paymentDate = paymentDate;
+  bill.paidAmount = paymentAmount;
+  bill.paidFromAccount = paymentAccount;
+  
+  // Create an expense entry to deduct from account balance
+  state.expenses.push({
+    id: uid(),
+    date: paymentDate,
+    category: 'Bill Payment',
+    description: `Paid: ${bill.billName}`,
+    amount: paymentAmount,
+    paymentMode: paymentAccount
+  });
+  
+  await persistAll();
+  closeModal();
+  showToast(`Bill "${bill.billName}" marked as paid. ${money(paymentAmount)} deducted from ${getAccountLabel(paymentAccount)}`);
+  renderBills();
+}
+
+function updatePaymentAccountWarning(){
+  const warningDiv = document.getElementById('paymentWarning');
+  if(!warningDiv) return;
+  
+  const paymentAmount = parseFloat(document.getElementById('payment_amount').value) || 0;
+  const paymentAccount = document.getElementById('payment_account').value;
+  
+  if(!paymentAccount || paymentAmount <= 0){
+    warningDiv.innerHTML = '';
+    return;
+  }
+  
+  const balance = accountBalance(paymentAccount);
+  const remainingAfterPayment = balance.balance - paymentAmount;
+  
+  let warning = '';
+  if(remainingAfterPayment < 0){
+    warning = `
+      <div style="margin-top:14px;padding:12px 16px;background:var(--brick-tint);color:var(--brick);border-radius:8px;font-size:13px;line-height:1.5;">
+        ⚠️ Insufficient balance! Current: ${money(balance.balance)}, After payment: ${money(remainingAfterPayment)}
+      </div>
+    `;
+  } else if(remainingAfterPayment < balance.balance * 0.1){
+    warning = `
+      <div style="margin-top:14px;padding:12px 16px;background:var(--amber-tint);color:var(--amber);border-radius:8px;font-size:13px;line-height:1.5;">
+        ⚠️ Alert: Payment will reduce balance significantly. Current: ${money(balance.balance)}, After payment: ${money(remainingAfterPayment)}
+      </div>
+    `;
+  }
+  
+  warningDiv.innerHTML = warning;
 }
 
 async function deleteBill(id){
@@ -2705,6 +2836,63 @@ async function deleteBill(id){
   await persistAll();
   showToast(`${billName} deleted`);
   renderBills();
+}
+
+async function markBillAsUnpaid(id){
+  const bill = state.bills.find(b=>b.id===id);
+  if(!bill) return;
+  
+  // If bill was paid, remove the associated expense entry
+  if(bill.paid && bill.paidFromAccount){
+    state.expenses = state.expenses.filter(e => !(e.description === `Paid: ${bill.billName}` && e.date === bill.paymentDate));
+  }
+  
+  // Mark bill as unpaid
+  bill.paid = false;
+  bill.paymentDate = null;
+  bill.paidAmount = null;
+  bill.paidFromAccount = null;
+  
+  await persistAll();
+  showToast(`Bill "${bill.billName}" marked as unpaid`);
+  renderBills();
+}
+
+function updateAccountBalanceWarning(){
+  const paymentModeSelect = document.getElementById('bill_paymentMode');
+  const amountInput = document.getElementById('bill_amount');
+  const warningDiv = document.getElementById('balanceWarning');
+  
+  if(!warningDiv) return;
+  
+  const selectedAccountId = paymentModeSelect?.value;
+  const billAmount = parseFloat(amountInput?.value) || 0;
+  
+  if(!selectedAccountId || billAmount <= 0){
+    warningDiv.innerHTML = '';
+    return;
+  }
+  
+  const balance = accountBalance(selectedAccountId);
+  const availableAfterBill = balance.balance - billAmount;
+  const accountLabel = getAccountLabel(selectedAccountId);
+  
+  let warning = '';
+  if(availableAfterBill < 0){
+    warning = `
+      <div style="margin-top:14px;padding:12px 16px;background:var(--brick-tint);color:var(--brick);border-radius:8px;font-size:13px;line-height:1.5;">
+        ⚠️ Warning: Adding this bill will make ${accountLabel} balance negative. Current balance: ${money(balance.balance)}, After bill: ${money(availableAfterBill)}
+      </div>
+    `;
+  } else if(availableAfterBill < balance.balance * 0.1){
+    warning = `
+      <div style="margin-top:14px;padding:12px 16px;background:var(--amber-tint);color:var(--amber);border-radius:8px;font-size:13px;line-height:1.5;">
+        ⚠️ Alert: This bill will reduce ${accountLabel} balance significantly. Current: ${money(balance.balance)}, After bill: ${money(availableAfterBill)}
+      </div>
+    `;
+  }
+  
+  warningDiv.innerHTML = warning;
 }
 
 /* ============================================================
