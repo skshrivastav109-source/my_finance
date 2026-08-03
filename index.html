@@ -3073,6 +3073,7 @@ async function updateTransfer(id){
       : accountBalance(fromAccount).balance; // Different account
     
       
+      
     if(newFromBalance < amount){
       showToast(`Insufficient balance in ${modeLabel(fromAccount)}. Available: ${money(newFromBalance)}`);
       return;
