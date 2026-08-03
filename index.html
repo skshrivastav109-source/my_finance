@@ -531,7 +531,8 @@ td.amt.debit{color:var(--brick);}
       <div class="navitem" data-page="daybook" onclick="navigate('daybook')"><span class="tabno">03</span>Daybook</div>
       <div class="navitem" data-page="loans" onclick="navigate('loans')"><span class="tabno">04</span>Loans &amp; EMI</div>
       <div class="navitem" data-page="budgets" onclick="navigate('budgets')"><span class="tabno">05</span>Budget Allocation</div>
-      <div class="navitem" data-page="transfers" onclick="navigate('transfers')"><span class="tabno">06</span>Transfer Money</div>
+      <div class="navitem" data-page="bills" onclick="navigate('bills')"><span class="tabno">06</span>Bills &amp; Payments</div>
+      <div class="navitem" data-page="transfers" onclick="navigate('transfers')"><span class="tabno">07</span>Transfer Money</div>
       <div class="sidebar-foot">Signed in as<br><b id="sidebarUserLine" style="color:var(--sidebar-text);"></b></div>
     </div>
     <div class="main">
@@ -672,6 +673,7 @@ let state = {
   expenses: [],        // [{id,date,category,description,amount,paymentMode}]
   loans: [],            // [{id,name,principal,emi,tenureMonths,startDate,rate}]
   budgets: [],          // [{id,category,amount,month}] - month format: YYYY-MM
+  bills: [],            // [{id,billName,dueDate,amount,paymentMode,paid,category,description}]
   transfers: []        // [{id,date,fromAccount,toAccount,amount,type,recipientName,note,status,dueDate}]
 };
 
@@ -693,7 +695,7 @@ async function autoLogout(){
   if(state.user){
     try { if(auth.currentUser) await auth.signOut(); } catch(e){ console.warn('[Google] signOut failed', e); }
     await sSet('session', '', false);
-    state = {user:null, banks:[], incomes:[], expenses:[], loans:[], budgets:[], transfers:[]};
+    state = {user:null, banks:[], incomes:[], expenses:[], loans:[], budgets:[], bills:[], transfers:[]};
     
     // Show logout message
     document.getElementById('appShell').style.display = 'none';
@@ -1113,7 +1115,7 @@ async function doLogout(){
   try { if(auth.currentUser) await auth.signOut(); } catch(e){ console.warn('[Google] signOut failed', e); }
 
   await sSet('session', '', false);
-  state = {user:null, banks:[], incomes:[], expenses:[], loans:[], budgets:[], transfers:[]};
+  state = {user:null, banks:[], incomes:[], expenses:[], loans:[], budgets:[], bills:[], transfers:[]};
   closeModal();
   document.getElementById('appShell').style.display = 'none';
   document.getElementById('authScreen').style.display = 'flex';
@@ -1224,6 +1226,7 @@ const PAGE_META = {
   daybook:{title:'Daybook', sub:'Log day-to-day spending as it happens'},
   loans:{title:'Loans & EMI', sub:'Track obligations and see your debt load'},
   budgets:{title:'Budget Allocation', sub:'Set spending limits and track budget usage by category'},
+  bills:{title:'Bills & Payments', sub:'Track upcoming bills and payment status'},
   transfers:{title:'Transfer Money', sub:'Move money between accounts or send to others'}
 };
 let currentPage = 'dashboard';
@@ -1240,6 +1243,7 @@ function renderCurrentPage(){
   else if(currentPage === 'daybook') renderDaybook();
   else if(currentPage === 'loans') renderLoans();
   else if(currentPage === 'budgets') renderBudgets();
+  else if(currentPage === 'bills') renderBills();
   else if(currentPage === 'transfers') renderTransfers();
 }
  
@@ -2532,6 +2536,167 @@ async function deleteLoan(id){
   state.loans = state.loans.filter(l=>l.id!==id);
   await persistAll();
   renderLoans();
+}
+
+/* ============================================================
+   BILLS & PAYMENTS PAGE
+============================================================ */
+function renderBills(){
+  const rows = [...state.bills].sort((a,b)=> (b.dueDate||'').localeCompare(a.dueDate||''));
+  const upcomingBills = rows.filter(b=>!b.paid);
+  const paidBills = rows.filter(b=>b.paid);
+  
+  const totalUpcoming = upcomingBills.reduce((s,b)=>s+Number(b.amount||0),0);
+  const totalPaid = paidBills.reduce((s,b)=>s+Number(b.amount||0),0);
+  
+  const paymentModes = () => {
+    const modes = new Set();
+    state.bills.forEach(b=>{ if(b.paymentMode) modes.add(b.paymentMode); });
+    return Array.from(modes).sort();
+  };
+  
+  const html = `
+    <div class="grid grid-3" style="margin-bottom:24px;">
+      <div class="card card-stat"><div class="k">Upcoming Bills</div><div class="v" style="color:var(--brick);">${money(totalUpcoming)}</div><div class="d">${upcomingBills.length} unpaid bill(s)</div></div>
+      <div class="card card-stat"><div class="k">Paid Bills</div><div class="v" style="color:var(--emerald-dark);">${money(totalPaid)}</div><div class="d">${paidBills.length} paid bill(s)</div></div>
+      <div class="card card-stat"><div class="k">Total Bills</div><div class="v">${money(totalUpcoming + totalPaid)}</div><div class="d">${rows.length} total bill(s)</div></div>
+    </div>
+ 
+    <div class="hint-banner">Track your upcoming bills and mark them as paid once you complete payment. Monitor payment modes and due dates to stay on top of your financial obligations.</div>
+ 
+    <div class="form-card">
+      <div class="form-grid">
+        <div class="field"><label>Bill Name</label><input type="text" id="bill_name" placeholder="e.g. Electricity, Internet, Mobile"></div>
+        <div class="field"><label>Category</label><select id="bill_category"><option value="">Select category</option><option value="Utilities">Utilities</option><option value="Subscriptions">Subscriptions</option><option value="Insurance">Insurance</option><option value="Rent">Rent</option><option value="Healthcare">Healthcare</option><option value="Other">Other</option></select></div>
+        <div class="field"><label>Amount</label><input type="number" id="bill_amount" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>Due Date</label><input type="date" id="bill_dueDate"></div>
+        <div class="field"><label>Payment Mode</label><select id="bill_paymentMode"><option value="">Select payment mode</option><option value="Credit Card">Credit Card</option><option value="Debit Card">Debit Card</option><option value="Net Banking">Net Banking</option><option value="UPI">UPI</option><option value="Cash">Cash</option><option value="Check">Check</option><option value="Auto Pay">Auto Pay</option><option value="Other">Other</option></select></div>
+        <div class="field full" style="grid-column:1/-1;"><button class="btn btn-primary" onclick="addBill()">Add Bill</button></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <div class="section-title" style="margin-top:0;"><span class="idx">01</span>Upcoming Bills (Not Paid)</div>
+      <div class="table-wrap">
+        ${upcomingBills.length===0 ? `
+          <div class="empty-state">
+            <div class="em-title">No upcoming bills</div>
+            <div class="em-sub">All your bills have been marked as paid or you haven't added any yet.</div>
+          </div>` : `
+          <table>
+            <thead><tr><th>Bill Name</th><th>Category</th><th>Amount</th><th>Due Date</th><th>Payment Mode</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              ${upcomingBills.map(b=>`
+                <tr>
+                  <td><b>${b.billName}</b></td>
+                  <td>${b.category || '—'}</td>
+                  <td class="amt debit">${money(b.amount)}</td>
+                  <td>${b.dueDate ? fmtDate(b.dueDate) : '—'}</td>
+                  <td><span class="tag">${b.paymentMode || 'Not specified'}</span></td>
+                  <td><span style="font-size:11px;padding:4px 10px;border-radius:12px;background:var(--brick-tint);color:var(--brick);font-weight:600;">Unpaid</span></td>
+                  <td><div class="row-actions"><button class="icon-btn" onclick="markBillAsPaid('${b.id}')">Mark Paid</button><button class="icon-btn" onclick="deleteBill('${b.id}')">Delete</button></div></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `}
+      </div>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <div class="section-title" style="margin-top:0;"><span class="idx">02</span>Paid Bills</div>
+      <div class="table-wrap">
+        ${paidBills.length===0 ? `
+          <div class="empty-state">
+            <div class="em-title">No paid bills</div>
+            <div class="em-sub">Mark bills as paid to see them here.</div>
+          </div>` : `
+          <table>
+            <thead><tr><th>Bill Name</th><th>Category</th><th>Amount</th><th>Due Date</th><th>Payment Mode</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              ${paidBills.map(b=>`
+                <tr>
+                  <td><b>${b.billName}</b></td>
+                  <td>${b.category || '—'}</td>
+                  <td class="amt credit">${money(b.amount)}</td>
+                  <td>${b.dueDate ? fmtDate(b.dueDate) : '—'}</td>
+                  <td><span class="tag" style="background:var(--emerald-tint);color:var(--emerald-dark);">${b.paymentMode || 'Not specified'}</span></td>
+                  <td><span style="font-size:11px;padding:4px 10px;border-radius:12px;background:var(--emerald-tint);color:var(--emerald-dark);font-weight:600;">Paid</span></td>
+                  <td><div class="row-actions"><button class="icon-btn" onclick="markBillAsUnpaid('${b.id}')">Mark Unpaid</button><button class="icon-btn" onclick="deleteBill('${b.id}')">Delete</button></div></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `}
+      </div>
+    </div>
+  `;
+  document.getElementById('pageContent').innerHTML = html;
+}
+
+async function addBill(){
+  const billName = document.getElementById('bill_name').value.trim();
+  const category = document.getElementById('bill_category').value;
+  const amount = parseFloat(document.getElementById('bill_amount').value) || 0;
+  const dueDate = document.getElementById('bill_dueDate').value;
+  const paymentMode = document.getElementById('bill_paymentMode').value;
+  
+  if(!billName || amount<=0 || !dueDate){ 
+    showToast('Enter bill name, amount, and due date');
+    return; 
+  }
+  
+  state.bills.push({
+    id: uid(), 
+    billName, 
+    category, 
+    amount, 
+    dueDate, 
+    paymentMode,
+    paid: false,
+    description: ''
+  });
+  
+  await persistAll();
+  showToast('Bill added');
+  
+  // Clear form
+  document.getElementById('bill_name').value = '';
+  document.getElementById('bill_category').value = '';
+  document.getElementById('bill_amount').value = '';
+  document.getElementById('bill_dueDate').value = '';
+  document.getElementById('bill_paymentMode').value = '';
+  
+  renderBills();
+}
+
+async function markBillAsPaid(id){
+  const bill = state.bills.find(b=>b.id===id);
+  if(bill){
+    bill.paid = true;
+    await persistAll();
+    showToast(`Bill "${bill.billName}" marked as paid`);
+    renderBills();
+  }
+}
+
+async function markBillAsUnpaid(id){
+  const bill = state.bills.find(b=>b.id===id);
+  if(bill){
+    bill.paid = false;
+    await persistAll();
+    showToast(`Bill "${bill.billName}" marked as unpaid`);
+    renderBills();
+  }
+}
+
+async function deleteBill(id){
+  const bill = state.bills.find(b=>b.id===id);
+  const billName = bill ? bill.billName : 'Bill';
+  state.bills = state.bills.filter(b=>b.id!==id);
+  await persistAll();
+  showToast(`${billName} deleted`);
+  renderBills();
 }
 
 /* ============================================================
