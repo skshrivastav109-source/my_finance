@@ -792,6 +792,13 @@ function modeLabel(id){
   const b = state.banks.find(x=>x.id===id);
   return b ? (b.bankName + ' (••' + b.last4 + ')') : 'Unknown';
 }
+
+function getAccountLabel(id){
+  if(!id) return '—';
+  if(id === 'cash') return 'Cash';
+  const b = state.banks.find(x=>x.id===id);
+  return b ? (b.bankName + ' (••' + b.last4 + ')') : 'Unknown';
+}
  
 /* ============================================================
    AUTH
@@ -2570,10 +2577,11 @@ function renderBills(){
         <div class="field"><label>Category</label><select id="bill_category"><option value="">Select category</option><option value="Utilities">Utilities</option><option value="Subscriptions">Subscriptions</option><option value="Insurance">Insurance</option><option value="Rent">Rent</option><option value="Healthcare">Healthcare</option><option value="Other">Other</option></select></div>
         <div class="field"><label>Amount</label><input type="number" id="bill_amount" min="0" step="0.01" placeholder="0"></div>
         <div class="field"><label>Due Date</label><input type="date" id="bill_dueDate"></div>
-        <div class="field"><label>Payment Mode</label><select id="bill_paymentMode"><option value="">Select payment mode</option><option value="Credit Card">Credit Card</option><option value="Debit Card">Debit Card</option><option value="Net Banking">Net Banking</option><option value="UPI">UPI</option><option value="Cash">Cash</option><option value="Check">Check</option><option value="Auto Pay">Auto Pay</option><option value="Other">Other</option></select></div>
+        <div class="field"><label>Payment Account</label><select id="bill_paymentMode">${state.banks.length===0 ? '<option value="">No bank accounts added</option>' : `<option value="">Select account</option><option value="cash">Cash</option>${state.banks.map(b=>`<option value="${b.id}">${b.bankName} (••${b.last4})</option>`).join('')}`}</select></div>
         <div class="field full" style="grid-column:1/-1;"><button class="btn btn-primary" onclick="addBill()">Add Bill</button></div>
       </div>
     </div>
+    ${state.banks.length===0 ? '<div class="hint-banner" style="margin-top:14px;margin-bottom:0;">You haven\'t added a bank account yet. Add one from the profile menu to select a payment account for bills.</div>' : ''}
 
     <div style="margin-bottom:24px;">
       <div class="section-title" style="margin-top:0;"><span class="idx">01</span>Upcoming Bills (Not Paid)</div>
@@ -2584,7 +2592,7 @@ function renderBills(){
             <div class="em-sub">All your bills have been marked as paid or you haven't added any yet.</div>
           </div>` : `
           <table>
-            <thead><tr><th>Bill Name</th><th>Category</th><th>Amount</th><th>Due Date</th><th>Payment Mode</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Bill Name</th><th>Category</th><th>Amount</th><th>Due Date</th><th>Payment Account</th><th>Status</th><th></th></tr></thead>
             <tbody>
               ${upcomingBills.map(b=>`
                 <tr>
@@ -2592,7 +2600,7 @@ function renderBills(){
                   <td>${b.category || '—'}</td>
                   <td class="amt debit">${money(b.amount)}</td>
                   <td>${b.dueDate ? fmtDate(b.dueDate) : '—'}</td>
-                  <td><span class="tag">${b.paymentMode || 'Not specified'}</span></td>
+                  <td><span class="tag">${getAccountLabel(b.paymentMode)}</span></td>
                   <td><span style="font-size:11px;padding:4px 10px;border-radius:12px;background:var(--brick-tint);color:var(--brick);font-weight:600;">Unpaid</span></td>
                   <td><div class="row-actions"><button class="icon-btn" onclick="markBillAsPaid('${b.id}')">Mark Paid</button><button class="icon-btn" onclick="deleteBill('${b.id}')">Delete</button></div></td>
                 </tr>
@@ -2612,7 +2620,7 @@ function renderBills(){
             <div class="em-sub">Mark bills as paid to see them here.</div>
           </div>` : `
           <table>
-            <thead><tr><th>Bill Name</th><th>Category</th><th>Amount</th><th>Due Date</th><th>Payment Mode</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Bill Name</th><th>Category</th><th>Amount</th><th>Due Date</th><th>Payment Account</th><th>Status</th><th></th></tr></thead>
             <tbody>
               ${paidBills.map(b=>`
                 <tr>
@@ -2620,7 +2628,7 @@ function renderBills(){
                   <td>${b.category || '—'}</td>
                   <td class="amt credit">${money(b.amount)}</td>
                   <td>${b.dueDate ? fmtDate(b.dueDate) : '—'}</td>
-                  <td><span class="tag" style="background:var(--emerald-tint);color:var(--emerald-dark);">${b.paymentMode || 'Not specified'}</span></td>
+                  <td><span class="tag" style="background:var(--emerald-tint);color:var(--emerald-dark);">${getAccountLabel(b.paymentMode)}</span></td>
                   <td><span style="font-size:11px;padding:4px 10px;border-radius:12px;background:var(--emerald-tint);color:var(--emerald-dark);font-weight:600;">Paid</span></td>
                   <td><div class="row-actions"><button class="icon-btn" onclick="markBillAsUnpaid('${b.id}')">Mark Unpaid</button><button class="icon-btn" onclick="deleteBill('${b.id}')">Delete</button></div></td>
                 </tr>
@@ -2641,8 +2649,8 @@ async function addBill(){
   const dueDate = document.getElementById('bill_dueDate').value;
   const paymentMode = document.getElementById('bill_paymentMode').value;
   
-  if(!billName || amount<=0 || !dueDate){ 
-    showToast('Enter bill name, amount, and due date');
+  if(!billName || amount<=0 || !dueDate || !paymentMode){ 
+    showToast('Enter bill name, amount, due date, and select a payment account');
     return; 
   }
   
