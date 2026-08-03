@@ -1064,6 +1064,7 @@ async function loadSession(username){
   state.expenses = (await sGet('expenses:'+username, true)) || [];
   state.loans = (await sGet('loans:'+username, true)) || [];
   state.budgets = (await sGet('budgets:'+username, true)) || [];
+  state.bills = (await sGet('bills:'+username, true)) || [];
   state.transfers = (await sGet('transfers:'+username, true)) || [];
  
   document.getElementById('authScreen').style.display = 'none';
@@ -1094,6 +1095,7 @@ async function persistAll(){
     sSet('expenses:'+u, state.expenses, true),
     sSet('loans:'+u, state.loans, true),
     sSet('budgets:'+u, state.budgets, true),
+    sSet('bills:'+u, state.bills, true),
     sSet('transfers:'+u, state.transfers, true)
   ]);
 }
