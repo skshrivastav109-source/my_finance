@@ -799,6 +799,19 @@ function getAccountLabel(id){
   const b = state.banks.find(x=>x.id===id);
   return b ? (b.bankName + ' (••' + b.last4 + ')') : 'Unknown';
 }
+
+function renderBankFilterDropdown(){
+  return `
+    <div style="display:flex;align-items:center;gap:12px;">
+      <label style="font-size:13.5px;font-weight:600;color:var(--ink-soft);white-space:nowrap;">Filter by Account:</label>
+      <select id="bankFilter" onchange="handleBankFilter()" style="padding:10px 14px;border:1px solid var(--line-strong);border-radius:8px;font-size:14px;background:var(--surface);color:var(--ink);cursor:pointer;min-width:200px;">
+        <option value="all">All Accounts</option>
+        <option value="cash">Cash</option>
+        ${state.banks.map(b=>`<option value="${b.id}">${b.bankName} (••${b.last4})</option>`).join('')}
+      </select>
+    </div>
+  `;
+}
  
 /* ============================================================
    AUTH
@@ -1246,6 +1259,11 @@ function navigate(page){
   document.getElementById('pageSub').textContent = PAGE_META[page].sub;
   renderCurrentPage();
 }
+
+function handleBankFilter(){
+  renderCurrentPage();
+}
+
 function renderCurrentPage(){
   if(currentPage === 'dashboard') renderDashboard();
   else if(currentPage === 'income') renderIncome();
@@ -2159,8 +2177,20 @@ function runExportLedger(){
 ============================================================ */
 function renderIncome(){
   const modes = paymentModes();
-  const rows = [...state.incomes].sort((a,b)=> b.date.localeCompare(a.date));
+  const filterBank = document.getElementById('bankFilter')?.value || 'all';
+  let rows = [...state.incomes].sort((a,b)=> b.date.localeCompare(a.date));
+  
+  // Apply bank filter
+  if(filterBank !== 'all'){
+    rows = rows.filter(r => r.accountId === filterBank);
+  }
+  
   const html = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+      <div></div>
+      ${renderBankFilterDropdown()}
+    </div>
+    
     <div class="form-card">
       <div class="form-grid">
         <div class="field"><label>Date</label><input type="date" id="in_date" value="${new Date().toISOString().slice(0,10)}"></div>
@@ -2345,10 +2375,22 @@ function renderDaybookMiniChart(){
 
 function renderDaybook(){
   const modes = paymentModes();
-  const rows = [...state.expenses].sort((a,b)=> b.date.localeCompare(a.date));
+  const filterBank = document.getElementById('bankFilter')?.value || 'all';
+  let rows = [...state.expenses].sort((a,b)=> b.date.localeCompare(a.date));
+  
+  // Apply bank filter
+  if(filterBank !== 'all'){
+    rows = rows.filter(r => r.paymentMode === filterBank);
+  }
+  
   const categoryBreakdown = getExpenseCategoryBreakdown();
   
   const html = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+      <div></div>
+      ${renderBankFilterDropdown()}
+    </div>
+    
     ${categoryBreakdown.length > 0 ? `
     <div class="card" style="margin-bottom:20px;">
       <div style="font-size:15px;font-weight:600;margin-bottom:16px;">📊 Expense Analytics</div>
@@ -2555,7 +2597,14 @@ async function deleteLoan(id){
    BILLS & PAYMENTS PAGE
 ============================================================ */
 function renderBills(){
-  const rows = [...state.bills].sort((a,b)=> (b.dueDate||'').localeCompare(a.dueDate||''));
+  const filterBank = document.getElementById('bankFilter')?.value || 'all';
+  let rows = [...state.bills].sort((a,b)=> (b.dueDate||'').localeCompare(a.dueDate||''));
+  
+  // Apply bank filter
+  if(filterBank !== 'all'){
+    rows = rows.filter(b => b.paymentMode === filterBank || b.paidFromAccount === filterBank);
+  }
+  
   const upcomingBills = rows.filter(b=>!b.paid);
   const paidBills = rows.filter(b=>b.paid);
   
@@ -2582,6 +2631,11 @@ function renderBills(){
       <div class="card card-stat"><div class="k">Total Bills</div><div class="v">${money(totalUpcoming + totalPaid)}</div><div class="d">${rows.length} total bill(s)</div></div>
     </div>
  
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+      <div></div>
+      ${renderBankFilterDropdown()}
+    </div>
+    
     <div class="section-title" style="margin-top:0;margin-bottom:14px;"><span class="idx">01</span>Account Balances</div>
     <div class="grid grid-3" style="margin-bottom:24px;">
       <div class="acct-card">
@@ -3111,9 +3165,20 @@ async function executeCopyBudgets(fromMonth, toMonth){
 ============================================================ */
 function renderTransfers(){
   const accounts = [{id:'cash', label:'Cash'}].concat(state.banks.map(b=>({id:b.id, label:b.bankName+' (••'+b.last4+')'})));
-  const rows = [...state.transfers].sort((a,b)=> b.date.localeCompare(a.date));
+  const filterBank = document.getElementById('bankFilter')?.value || 'all';
+  let rows = [...state.transfers].sort((a,b)=> b.date.localeCompare(a.date));
+  
+  // Apply bank filter
+  if(filterBank !== 'all'){
+    rows = rows.filter(t => t.fromAccount === filterBank || t.toAccount === filterBank);
+  }
   
   const html = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+      <div></div>
+      ${renderBankFilterDropdown()}
+    </div>
+    
     <div class="hint-banner">
       Transfer money between your own accounts (self-transfer) or send money to others (P2P transfer). Transfers automatically update your account balances.
     </div>
