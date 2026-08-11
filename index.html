@@ -1468,19 +1468,26 @@ function savingsTips(){
 function renderDashboard(){
   try {
     console.log('[Dashboard] Starting render...');
+    
+    const filterBank = document.getElementById('bankFilter')?.value || 'all';
+    
+    // Apply bank filter to data
+    const filteredIncomes = filterBank === 'all' ? state.incomes : state.incomes.filter(i => i.accountId === filterBank);
+    const filteredExpenses = filterBank === 'all' ? state.expenses : state.expenses.filter(e => e.paymentMode === filterBank);
+    
     console.log('[Dashboard] State:', {
-      incomeCount: state.incomes.length,
-      expenseCount: state.expenses.length,
+      incomeCount: filteredIncomes.length,
+      expenseCount: filteredExpenses.length,
       loanCount: state.loans.length,
       bankCount: state.banks.length
     });
     
-    const inc = totalIncome();
-    const exp = totalExpenses();
+    const inc = filteredIncomes.reduce((s,i)=>s+Number(i.amount||0),0);
+    const exp = filteredExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
     const bal = inc - exp;
     const emi = totalMonthlyEMI();
-    const health = financialHealth();
-    const suggSalary = suggestedSalary();
+    const health = financialHealth(filteredIncomes, filteredExpenses);
+    const suggSalary = suggestedSalary(filteredExpenses, emi);
     const tips = savingsTips();
     const availableMonths = getAvailableMonths();
     const currentMonth = new Date().toISOString().slice(0,7);
@@ -1528,6 +1535,11 @@ function renderDashboard(){
     </div>
 
     <div class="section-title"><span class="idx">02</span>Overview</div>
+    
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
+      <div></div>
+      ${renderBankFilterDropdown()}
+    </div>
     <div class="grid grid-4">
       <div class="card card-stat"><div class="k">Total Income</div><div class="v pos">${money(inc)}</div><div class="d">${state.incomes.length} entries logged</div></div>
       <div class="card card-stat"><div class="k">Total Expenses</div><div class="v neg">${money(exp)}</div><div class="d">${state.expenses.length} daybook entries</div></div>
@@ -2178,6 +2190,7 @@ function runExportLedger(){
 function renderIncome(){
   const modes = paymentModes();
   const filterBank = document.getElementById('bankFilter')?.value || 'all';
+  const filterCategory = document.getElementById('incomeCategory')?.value || 'all';
   let rows = [...state.incomes].sort((a,b)=> b.date.localeCompare(a.date));
   
   // Apply bank filter
@@ -2185,9 +2198,20 @@ function renderIncome(){
     rows = rows.filter(r => r.accountId === filterBank);
   }
   
+  // Apply category filter
+  if(filterCategory !== 'all'){
+    rows = rows.filter(r => r.category === filterCategory);
+  }
+  
   const html = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
-      <div></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <label style="font-size:13.5px;font-weight:600;color:var(--ink-soft);white-space:nowrap;">Filter by Category:</label>
+        <select id="incomeCategory" onchange="handleBankFilter()" style="padding:10px 14px;border:1px solid var(--line-strong);border-radius:8px;font-size:14px;background:var(--surface);color:var(--ink);cursor:pointer;min-width:180px;">
+          <option value="all">All Categories</option>
+          ${INCOME_CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </select>
+      </div>
       ${renderBankFilterDropdown()}
     </div>
     
@@ -2376,6 +2400,7 @@ function renderDaybookMiniChart(){
 function renderDaybook(){
   const modes = paymentModes();
   const filterBank = document.getElementById('bankFilter')?.value || 'all';
+  const filterCategory = document.getElementById('expenseCategory')?.value || 'all';
   let rows = [...state.expenses].sort((a,b)=> b.date.localeCompare(a.date));
   
   // Apply bank filter
@@ -2383,11 +2408,22 @@ function renderDaybook(){
     rows = rows.filter(r => r.paymentMode === filterBank);
   }
   
+  // Apply category filter
+  if(filterCategory !== 'all'){
+    rows = rows.filter(r => r.category === filterCategory);
+  }
+  
   const categoryBreakdown = getExpenseCategoryBreakdown();
   
   const html = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:14px;">
-      <div></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <label style="font-size:13.5px;font-weight:600;color:var(--ink-soft);white-space:nowrap;">Filter by Category:</label>
+        <select id="expenseCategory" onchange="handleBankFilter()" style="padding:10px 14px;border:1px solid var(--line-strong);border-radius:8px;font-size:14px;background:var(--surface);color:var(--ink);cursor:pointer;min-width:180px;">
+          <option value="all">All Categories</option>
+          ${EXPENSE_CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </select>
+      </div>
       ${renderBankFilterDropdown()}
     </div>
     
